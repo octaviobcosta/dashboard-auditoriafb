@@ -107,6 +107,16 @@ def indicators():
 def indicators_modern():
     return render_template('indicators_modern.html')
 
+@app.route('/dashboard-clean')
+@login_required
+def dashboard_clean():
+    return render_template('dashboard_clean.html')
+
+@app.route('/indicators-clean')
+@login_required
+def indicators_clean():
+    return render_template('indicators_clean.html')
+
 # Rotas administrativas
 @app.route('/import-data')
 @login_required
