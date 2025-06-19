@@ -92,10 +92,20 @@ def index():
 def dashboard():
     return render_template('dashboard.html')
 
+@app.route('/dashboard-modern')
+@login_required
+def dashboard_modern():
+    return render_template('dashboard_modern.html')
+
 @app.route('/indicators')
 @login_required
 def indicators():
     return render_template('indicators.html')
+
+@app.route('/indicators-modern')
+@login_required
+def indicators_modern():
+    return render_template('indicators_modern.html')
 
 # Rotas administrativas
 @app.route('/import-data')
