@@ -20,5 +20,5 @@ if __name__ == '__main__':
     # Inicializar banco
     init_db()
     
-    # Rodar aplicação
-    app.run(debug=Config.DEBUG, host='0.0.0.0', port=5000)
+    # Rodar aplicação com auto-reload
+    app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=True)

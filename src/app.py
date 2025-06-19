@@ -52,14 +52,21 @@ def login():
         senha = data.get('senha')
         
         user_data = db.get_usuario_by_email(email)
-        if user_data and check_password_hash(user_data['senha_hash'], senha):
-            user = User(user_data)
-            login_user(user)
-            db.update_ultimo_acesso(user_data['id'])
-            
-            if request.is_json:
-                return jsonify({"success": True, "redirect": url_for('dashboard')})
-            return redirect(url_for('dashboard'))
+        print(f"DEBUG - User data: {user_data}")  # Debug temporário
+        if user_data:
+            try:
+                # Verifica se o hash existe e não está vazio
+                if user_data.get('senha_hash') and check_password_hash(user_data['senha_hash'], senha):
+                    user = User(user_data)
+                    login_user(user)
+                    db.update_ultimo_acesso(user_data['id'])
+                    
+                    if request.is_json:
+                        return jsonify({"success": True, "redirect": url_for('dashboard')})
+                    return redirect(url_for('dashboard'))
+            except Exception as e:
+                print(f"Erro ao verificar senha: {e}")
+                print(f"Hash recebido: {user_data.get('senha_hash', 'VAZIO')}")
         
         if request.is_json:
             return jsonify({"success": False, "message": "Email ou senha inválidos"}), 401
