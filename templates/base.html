@@ -48,6 +48,7 @@
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             color: var(--text-primary);
             line-height: 1.6;
+            min-height: 100vh;
         }
         
         h1, h2, h3, h4, h5, h6 {
@@ -57,10 +58,15 @@
         }
         
         .navbar {
-            background: linear-gradient(to right, var(--darker-bg), var(--dark-bg)) !important;
+            background: linear-gradient(135deg, var(--darker-bg) 0%, rgba(26, 26, 26, 0.95) 100%);
             border-bottom: 1px solid var(--border-color);
             backdrop-filter: blur(10px);
-            padding: 1rem 0;
+            padding: 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .navbar .container-fluid {
+            padding: 1rem 2rem;
         }
         
         .navbar-brand {
@@ -88,10 +94,13 @@
         
         .sidebar {
             background: var(--sidebar-bg);
-            min-height: calc(100vh - 73px);
+            min-height: calc(100vh - 65px);
             border-right: 1px solid var(--border-color);
             padding-top: 30px;
+            padding-bottom: 20px;
             backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
         }
         
         .sidebar .nav-link {
@@ -120,11 +129,12 @@
         .nav-section-title {
             padding: 8px 24px;
             margin: 8px 12px 4px;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 1.2px;
             color: var(--text-muted);
+            opacity: 0.7;
         }
         
         .sidebar .nav-link:hover {
@@ -147,12 +157,13 @@
             backdrop-filter: blur(10px);
             transition: all 0.3s ease;
             color: var(--text-primary);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
         
         .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px var(--shadow-color);
-            border-color: rgba(241, 194, 50, 0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            border-color: rgba(241, 194, 50, 0.2);
         }
         
         .card-header {
@@ -234,31 +245,38 @@
         }
         
         .table {
-            background-color: var(--card-bg);
             color: var(--text-primary);
             border-radius: 12px;
             overflow: hidden;
         }
         
         .table thead {
-            background: rgba(241, 194, 50, 0.1);
+            background: rgba(255, 255, 255, 0.05);
             color: var(--text-primary);
             font-weight: 600;
             text-transform: uppercase;
             font-size: 0.85rem;
             letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--border-color);
         }
         
         .table thead th {
-            border-color: rgba(241, 194, 50, 0.2);
+            border-color: transparent;
+            padding: 1rem;
         }
         
         .table tbody tr {
             border-color: var(--border-color);
+            background: transparent;
+        }
+        
+        .table tbody td {
+            padding: 1rem;
+            border-color: var(--border-color);
         }
         
         .table tbody tr:hover {
-            background: rgba(241, 194, 50, 0.05);
+            background: rgba(255, 255, 255, 0.03);
         }
         
         .badge {
@@ -374,9 +392,9 @@
             {% if current_user.is_authenticated and show_sidebar is not defined or show_sidebar %}
             <!-- Sidebar -->
             <nav class="col-md-2 d-none d-md-block sidebar">
-                <div class="position-sticky">
+                <div class="d-flex flex-column h-100">
+                    <!-- Navegação Principal -->
                     <ul class="nav flex-column">
-                        <!-- Navegação Principal -->
                         <li class="nav-item">
                             <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
                                 <i class="fas fa-tachometer-alt"></i>Dashboard
@@ -387,20 +405,18 @@
                                 <i class="fas fa-chart-line"></i>Indicadores
                             </a>
                         </li>
-                        
-                        {% if current_user.perfil in ['admin', 'gestor'] %}
-                        <!-- Separador Visual -->
+                    </ul>
+                    
+                    {% if current_user.perfil in ['admin', 'gestor'] %}
+                    <!-- Ações Administrativas -->
+                    <ul class="nav flex-column mt-auto">
                         <li class="nav-divider"><hr class="sidebar-divider"></li>
-                        
-                        <!-- Ações Administrativas -->
                         <li class="nav-section-title">Administração</li>
                         <li class="nav-item">
                             <a class="nav-link {% if request.endpoint == 'import_data' %}active{% endif %}" href="{{ url_for('import_data') }}">
                                 <i class="fas fa-file-import"></i>Importar Dados
                             </a>
                         </li>
-                        {% endif %}
-                        
                         {% if current_user.perfil == 'admin' %}
                         <li class="nav-item">
                             <a class="nav-link {% if request.endpoint == 'users' %}active{% endif %}" href="{{ url_for('users') }}">
@@ -414,11 +430,12 @@
                         </li>
                         {% endif %}
                     </ul>
+                    {% endif %}
                 </div>
             </nav>
             
             <!-- Main content -->
-            <main class="col-md-10 ms-sm-auto px-md-4">
+            <main class="col-md-10 ms-sm-auto">
                 {% block content %}{% endblock %}
             </main>
             {% else %}

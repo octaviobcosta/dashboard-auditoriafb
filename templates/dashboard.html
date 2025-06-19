@@ -53,26 +53,39 @@
     }
 }
 
-/* Trend indicators */
-.trend-indicator {
+/* Metric change indicators */
+.metric-change {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+}
+
+.change-value {
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    padding: 0.25rem 0.5rem;
-    border-radius: 20px;
-    margin-top: 0.5rem;
+    font-weight: 600;
+    font-size: 0.9rem;
 }
 
-.trend-up {
-    background: rgba(39, 174, 96, 0.1);
+.change-value.positive {
     color: #27ae60;
 }
 
-.trend-down {
-    background: rgba(231, 76, 60, 0.1);
+.change-value.negative {
     color: #e74c3c;
+}
+
+.change-value i {
+    font-size: 0.75rem;
+}
+
+.change-period {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    opacity: 0.8;
 }
 
 /* Charts container */
@@ -85,6 +98,13 @@
 /* Table improvements */
 .table-dashboard {
     font-size: 0.9rem;
+    background: transparent;
+}
+
+.table-dashboard td,
+.table-dashboard th {
+    background: transparent;
+    color: var(--text-primary);
 }
 
 .table-dashboard th {
@@ -124,12 +144,11 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
+<div class="container-fluid px-4 py-4">
     <!-- Header Principal -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="h2 mb-1">Dashboard Geral</h1>
-            <p class="text-muted mb-0">Visão consolidada dos principais indicadores</p>
+            <h1 class="h2 mb-0">Dashboard Geral</h1>
         </div>
         <div class="d-flex gap-2 align-items-center">
             <button class="btn btn-outline-secondary btn-sm" onclick="atualizarDados()">
@@ -156,10 +175,11 @@
                 <div class="metric-value" id="totalVendas">
                     <span class="loading"></span>
                 </div>
-                <div class="trend-indicator trend-up">
-                    <i class="fas fa-arrow-up"></i>
-                    <span>12.5%</span>
-                    <small class="text-muted ms-1">vs mês anterior</small>
+                <div class="metric-change">
+                    <span class="change-value positive">
+                        <i class="fas fa-arrow-up"></i> +12.5%
+                    </span>
+                    <span class="change-period">vs mês anterior</span>
                 </div>
             </div>
         </div>
@@ -170,10 +190,11 @@
                 <div class="metric-value" id="custoTotal">
                     <span class="loading"></span>
                 </div>
-                <div class="trend-indicator trend-down">
-                    <i class="fas fa-arrow-down"></i>
-                    <span>3.2%</span>
-                    <small class="text-muted ms-1">vs mês anterior</small>
+                <div class="metric-change">
+                    <span class="change-value negative">
+                        <i class="fas fa-arrow-down"></i> -3.2%
+                    </span>
+                    <span class="change-period">vs mês anterior</span>
                 </div>
             </div>
         </div>
@@ -191,6 +212,12 @@
                     <span class="loading"></span>
                 </div>
                 <small class="text-muted">unidades vendidas</small>
+                <div class="metric-change mt-2">
+                    <span class="change-value negative">
+                        <i class="fas fa-arrow-down"></i> -3.1%
+                    </span>
+                    <span class="change-period">vs mês anterior</span>
+                </div>
             </div>
         </div>
         
@@ -204,6 +231,12 @@
                     <span class="loading"></span>
                 </div>
                 <small class="text-muted">por transação</small>
+                <div class="metric-change mt-2">
+                    <span class="change-value positive">
+                        <i class="fas fa-arrow-up"></i> +5.2%
+                    </span>
+                    <span class="change-period">vs mês anterior</span>
+                </div>
             </div>
         </div>
         
@@ -217,6 +250,12 @@
                     <span class="loading"></span>
                 </div>
                 <small class="text-muted">aplicados</small>
+                <div class="metric-change mt-2">
+                    <span class="change-value negative">
+                        <i class="fas fa-arrow-up"></i> +8.7%
+                    </span>
+                    <span class="change-period">vs mês anterior</span>
+                </div>
             </div>
         </div>
         
@@ -230,6 +269,12 @@
                     <span class="loading"></span>
                 </div>
                 <small class="text-muted">atendidos</small>
+                <div class="metric-change mt-2">
+                    <span class="change-value positive">
+                        <i class="fas fa-arrow-up"></i> +2.3%
+                    </span>
+                    <span class="change-period">vs mês anterior</span>
+                </div>
             </div>
         </div>
     </div>
