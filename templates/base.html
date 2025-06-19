@@ -11,123 +11,306 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <!-- Custom CSS -->
     <style>
         :root {
-            --primary-color: #2c3e50;
-            --secondary-color: #3498db;
+            --primary-color: #F1C232;
+            --secondary-color: #f9d71c;
+            --dark-bg: #1a1a1a;
+            --darker-bg: #0f0f0f;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --sidebar-bg: rgba(255, 255, 255, 0.03);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --text-muted: rgba(255, 255, 255, 0.5);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --shadow-color: rgba(0, 0, 0, 0.5);
             --success-color: #27ae60;
             --danger-color: #e74c3c;
             --warning-color: #f39c12;
             --info-color: #3498db;
-            --light-bg: #ecf0f1;
-            --dark-bg: #34495e;
+        }
+        
+        * {
+            box-sizing: border-box;
         }
         
         body {
-            background-color: var(--light-bg);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--dark-bg);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            color: var(--text-primary);
         }
         
         .navbar {
-            background-color: var(--primary-color) !important;
-            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+            background: linear-gradient(to right, var(--darker-bg), var(--dark-bg)) !important;
+            border-bottom: 1px solid var(--border-color);
+            backdrop-filter: blur(10px);
+            padding: 1rem 0;
+        }
+        
+        .navbar-brand {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 1.3rem;
+            color: var(--primary-color) !important;
+            display: flex;
+            align-items: center;
+        }
+        
+        .navbar-brand img {
+            height: 35px;
+            margin-right: 12px;
+        }
+        
+        .navbar .nav-link {
+            color: var(--text-secondary) !important;
+            transition: color 0.3s ease;
+        }
+        
+        .navbar .nav-link:hover {
+            color: var(--primary-color) !important;
         }
         
         .sidebar {
-            background-color: white;
-            min-height: calc(100vh - 56px);
-            box-shadow: 2px 0 4px rgba(0,0,0,.1);
-            padding-top: 20px;
+            background: var(--sidebar-bg);
+            min-height: calc(100vh - 73px);
+            border-right: 1px solid var(--border-color);
+            padding-top: 30px;
+            backdrop-filter: blur(10px);
         }
         
         .sidebar .nav-link {
-            color: var(--primary-color);
-            padding: 10px 20px;
-            margin: 5px 0;
-            border-radius: 5px;
-            transition: all 0.3s;
+            color: var(--text-secondary);
+            padding: 12px 24px;
+            margin: 4px 12px;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+        
+        .sidebar .nav-link i {
+            width: 20px;
+            margin-right: 12px;
+            font-size: 1.1rem;
         }
         
         .sidebar .nav-link:hover {
-            background-color: var(--light-bg);
-            color: var(--secondary-color);
+            background: rgba(241, 194, 50, 0.1);
+            color: var(--primary-color);
+            transform: translateX(5px);
         }
         
         .sidebar .nav-link.active {
-            background-color: var(--secondary-color);
-            color: white;
+            background: var(--primary-color);
+            color: var(--dark-bg);
+            font-weight: 600;
         }
         
         .card {
-            border: none;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,.1);
-            transition: transform 0.2s;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            color: var(--text-primary);
         }
         
         .card:hover {
             transform: translateY(-5px);
+            box-shadow: 0 10px 30px var(--shadow-color);
+            border-color: rgba(241, 194, 50, 0.3);
+        }
+        
+        .card-header {
+            background: transparent !important;
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.5rem;
         }
         
         .metric-card {
-            padding: 20px;
+            padding: 30px;
             text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, var(--primary-color), transparent);
+            opacity: 0.05;
+            animation: pulse 4s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(0.8); opacity: 0.05; }
+            50% { transform: scale(1.2); opacity: 0.1; }
         }
         
         .metric-value {
-            font-size: 2.5rem;
-            font-weight: bold;
+            font-size: 3rem;
+            font-weight: 700;
             color: var(--primary-color);
+            line-height: 1;
+            margin-bottom: 0.5rem;
+            font-family: 'Poppins', sans-serif;
         }
         
         .metric-label {
-            color: #7f8c8d;
-            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
             text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
         }
         
         .btn-primary {
-            background-color: var(--secondary-color);
-            border-color: var(--secondary-color);
+            background-color: var(--primary-color);
+            border: none;
+            color: var(--dark-bg);
+            font-weight: 600;
+            padding: 12px 24px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         .btn-primary:hover {
-            background-color: #2980b9;
-            border-color: #2980b9;
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(241, 194, 50, 0.3);
+        }
+        
+        .btn-outline-secondary {
+            color: var(--text-secondary);
+            border-color: var(--border-color);
+            background: transparent;
+        }
+        
+        .btn-outline-secondary:hover {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: var(--dark-bg);
         }
         
         .table {
-            background-color: white;
-            border-radius: 10px;
+            background-color: var(--card-bg);
+            color: var(--text-primary);
+            border-radius: 12px;
             overflow: hidden;
         }
         
         .table thead {
-            background-color: var(--primary-color);
-            color: white;
+            background: rgba(241, 194, 50, 0.1);
+            color: var(--primary-color);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+        
+        .table tbody tr {
+            border-color: var(--border-color);
+        }
+        
+        .table tbody tr:hover {
+            background: rgba(241, 194, 50, 0.05);
         }
         
         .badge {
-            padding: 5px 10px;
-            border-radius: 15px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+        
+        .bg-secondary {
+            background-color: rgba(255, 255, 255, 0.1) !important;
+            color: var(--text-secondary) !important;
+        }
+        
+        .form-select {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 8px;
+        }
+        
+        .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(241, 194, 50, 0.25);
+        }
+        
+        .dropdown-menu {
+            background-color: var(--darker-bg);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 30px var(--shadow-color);
+        }
+        
+        .dropdown-item {
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+        }
+        
+        .dropdown-item:hover {
+            background-color: rgba(241, 194, 50, 0.1);
+            color: var(--primary-color);
         }
         
         .loading {
             display: inline-block;
             width: 20px;
             height: 20px;
-            border: 3px solid rgba(255,255,255,.3);
+            border: 3px solid rgba(241, 194, 50, 0.3);
             border-radius: 50%;
-            border-top-color: white;
+            border-top-color: var(--primary-color);
             animation: spin 1s ease-in-out infinite;
         }
         
         @keyframes spin {
             to { transform: rotate(360deg); }
+        }
+        
+        /* Scrollbar personalizada */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--darker-bg);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 5px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-color);
         }
     </style>
     
@@ -138,8 +321,8 @@
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="{{ url_for('dashboard') }}">
-                <i class="fas fa-chart-line me-2"></i>
-                Dashboard Auditoria FB
+                <img src="{{ url_for('static', filename='images/logofb.png') }}" alt="Logo FB">
+                Dashboard Auditoria
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>

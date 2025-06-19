@@ -150,5 +150,13 @@ class Database:
         """Registra erro de importação"""
         self.supabase.table('importacoes_erros').insert(data).execute()
 
-# Instância global
-db = Database()
+# Tenta criar instância com Supabase, se falhar usa PostgreSQL direto
+try:
+    db = Database()
+    # Testa se funciona
+    test = db.supabase.table('categorias').select('*').limit(1).execute()
+    print("✓ Usando cliente Supabase")
+except Exception as e:
+    print(f"⚠ Erro com cliente Supabase: {str(e)}")
+    print("✓ Usando conexão PostgreSQL direta")
+    from models.database_pg import db

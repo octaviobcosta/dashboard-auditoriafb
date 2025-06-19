@@ -5,7 +5,9 @@
 {% block content %}
 <div class="py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h2">Dashboard de Controladoria</h1>
+        <h1 class="h2">
+            <span style="color: var(--primary-color);">Dashboard</span> de Controladoria
+        </h1>
         <div>
             <button class="btn btn-outline-secondary btn-sm me-2" onclick="atualizarDados()">
                 <i class="fas fa-sync-alt me-1"></i>Atualizar
@@ -28,7 +30,7 @@
                         <span class="loading"></span>
                     </div>
                     <div class="metric-label">Total de Vendas</div>
-                    <small class="text-muted">
+                    <small style="color: var(--text-muted);">
                         <i class="fas fa-arrow-up text-success"></i> +12.5% vs mês anterior
                     </small>
                 </div>
@@ -42,7 +44,7 @@
                         <span class="loading"></span>
                     </div>
                     <div class="metric-label">Ticket Médio</div>
-                    <small class="text-muted">
+                    <small style="color: var(--text-muted);">
                         <i class="fas fa-arrow-up text-success"></i> +5.2% vs mês anterior
                     </small>
                 </div>
@@ -56,7 +58,7 @@
                         <span class="loading"></span>
                     </div>
                     <div class="metric-label">Produtos Vendidos</div>
-                    <small class="text-muted">
+                    <small style="color: var(--text-muted);">
                         <i class="fas fa-arrow-down text-danger"></i> -3.1% vs mês anterior
                     </small>
                 </div>
@@ -70,7 +72,7 @@
                         <span class="loading"></span>
                     </div>
                     <div class="metric-label">Total Descontos</div>
-                    <small class="text-muted">
+                    <small style="color: var(--text-muted);">
                         <i class="fas fa-arrow-up text-danger"></i> +8.7% vs mês anterior
                     </small>
                 </div>
@@ -213,8 +215,8 @@ function atualizarGraficoVendas(dados) {
             datasets: [{
                 label: 'Vendas',
                 data: valores,
-                borderColor: '#3498db',
-                backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                borderColor: '#F1C232',
+                backgroundColor: 'rgba(241, 194, 50, 0.1)',
                 borderWidth: 3,
                 tension: 0.4,
                 fill: true
@@ -260,9 +262,9 @@ function atualizarGraficoCategorias(categorias) {
             datasets: [{
                 data: valores,
                 backgroundColor: [
+                    '#F1C232',
+                    '#27ae60',
                     '#3498db',
-                    '#2ecc71',
-                    '#f39c12',
                     '#e74c3c',
                     '#9b59b6'
                 ]
