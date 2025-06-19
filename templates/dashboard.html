@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Auditoria FB{% endblock %}
+
+{% block content %}
+<div class="py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2">Dashboard de Controladoria</h1>
+        <div>
+            <button class="btn btn-outline-secondary btn-sm me-2" onclick="atualizarDados()">
+                <i class="fas fa-sync-alt me-1"></i>Atualizar
+            </button>
+            <select class="form-select form-select-sm d-inline-block w-auto" id="periodoSelect">
+                <option value="7">Últimos 7 dias</option>
+                <option value="30" selected>Últimos 30 dias</option>
+                <option value="90">Últimos 90 dias</option>
+                <option value="365">Último ano</option>
+            </select>
+        </div>
+    </div>
+    
+    <!-- Cards de Métricas -->
+    <div class="row g-4 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card metric-card">
+                <div class="card-body">
+                    <div class="metric-value text-success" id="totalVendas">
+                        <span class="loading"></span>
+                    </div>
+                    <div class="metric-label">Total de Vendas</div>
+                    <small class="text-muted">
+                        <i class="fas fa-arrow-up text-success"></i> +12.5% vs mês anterior
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="card metric-card">
+                <div class="card-body">
+                    <div class="metric-value text-primary" id="ticketMedio">
+                        <span class="loading"></span>
+                    </div>
+                    <div class="metric-label">Ticket Médio</div>
+                    <small class="text-muted">
+                        <i class="fas fa-arrow-up text-success"></i> +5.2% vs mês anterior
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="card metric-card">
+                <div class="card-body">
+                    <div class="metric-value text-warning" id="totalProdutos">
+                        <span class="loading"></span>
+                    </div>
+                    <div class="metric-label">Produtos Vendidos</div>
+                    <small class="text-muted">
+                        <i class="fas fa-arrow-down text-danger"></i> -3.1% vs mês anterior
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="card metric-card">
+                <div class="card-body">
+                    <div class="metric-value text-danger" id="totalDescontos">
+                        <span class="loading"></span>
+                    </div>
+                    <div class="metric-label">Total Descontos</div>
+                    <small class="text-muted">
+                        <i class="fas fa-arrow-up text-danger"></i> +8.7% vs mês anterior
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Gráficos -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-line me-2 text-primary"></i>
+                        Evolução de Vendas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartVendas" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-pie me-2 text-primary"></i>
+                        Vendas por Categoria
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartCategorias" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tabela de Top Produtos -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-trophy me-2 text-warning"></i>
+                        Top 10 Produtos Mais Vendidos
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Produto</th>
+                                    <th>Categoria</th>
+                                    <th>Quantidade</th>
+                                    <th>Valor Total</th>
+                                    <th>% do Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="topProdutosTable">
+                                <tr>
+                                    <td colspan="6" class="text-center">
+                                        <span class="loading"></span> Carregando...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Variáveis globais para os gráficos
+let chartVendas = null;
+let chartCategorias = null;
+
+// Função para formatar valores monetários
+function formatarMoeda(valor) {
+    return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    }).format(valor);
+}
+
+// Função para formatar números
+function formatarNumero(numero) {
+    return new Intl.NumberFormat('pt-BR').format(numero);
+}
+
+// Função para carregar dados do dashboard
+async function carregarDados() {
+    const periodo = document.getElementById('periodoSelect').value;
+    const dataFim = new Date();
+    const dataInicio = new Date();
+    dataInicio.setDate(dataInicio.getDate() - parseInt(periodo));
+    
+    try {
+        const response = await fetch(`/api/produtos-vendidos?periodo_inicio=${dataInicio.toISOString()}&periodo_fim=${dataFim.toISOString()}`);
+        const data = await response.json();
+        
+        // Atualizar métricas
+        document.getElementById('totalVendas').textContent = formatarMoeda(data.resumo.total_vendas);
+        document.getElementById('ticketMedio').textContent = formatarMoeda(data.resumo.ticket_medio);
+        document.getElementById('totalProdutos').textContent = formatarNumero(data.resumo.total_produtos);
+        document.getElementById('totalDescontos').textContent = formatarMoeda(data.resumo.total_descontos);
+        
+        // Atualizar gráficos
+        atualizarGraficoVendas(data.dados);
+        atualizarGraficoCategorias(data.resumo.categorias_mais_vendidas);
+        
+        // Atualizar tabela
+        atualizarTabelaTopProdutos(data.dados);
+        
+    } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+    }
+}
+
+// Função para atualizar gráfico de vendas
+function atualizarGraficoVendas(dados) {
+    const ctx = document.getElementById('chartVendas').getContext('2d');
+    
+    // Agrupar por data (simulado por enquanto)
+    const labels = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const valores = [45000, 52000, 48000, 58000, 62000, 75000, 68000];
+    
+    if (chartVendas) {
+        chartVendas.destroy();
+    }
+    
+    chartVendas = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Vendas',
+                data: valores,
+                borderColor: '#3498db',
+                backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return formatarMoeda(value);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Função para atualizar gráfico de categorias
+function atualizarGraficoCategorias(categorias) {
+    const ctx = document.getElementById('chartCategorias').getContext('2d');
+    
+    const labels = Object.keys(categorias).slice(0, 5);
+    const valores = Object.values(categorias).slice(0, 5);
+    
+    if (chartCategorias) {
+        chartCategorias.destroy();
+    }
+    
+    chartCategorias = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: valores,
+                backgroundColor: [
+                    '#3498db',
+                    '#2ecc71',
+                    '#f39c12',
+                    '#e74c3c',
+                    '#9b59b6'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        font: {
+                            size: 11
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Função para atualizar tabela de top produtos
+function atualizarTabelaTopProdutos(dados) {
+    // Ordenar por valor total
+    const topProdutos = dados
+        .sort((a, b) => b.valor_total - a.valor_total)
+        .slice(0, 10);
+    
+    const totalGeral = dados.reduce((sum, p) => sum + p.valor_total, 0);
+    
+    const tbody = document.getElementById('topProdutosTable');
+    tbody.innerHTML = topProdutos.map((produto, index) => `
+        <tr>
+            <td>${index + 1}</td>
+            <td>${produto.nome}</td>
+            <td><span class="badge bg-secondary">${produto.categoria}</span></td>
+            <td>${formatarNumero(produto.quantidade)}</td>
+            <td>${formatarMoeda(produto.valor_total)}</td>
+            <td>
+                <div class="progress" style="height: 20px;">
+                    <div class="progress-bar" role="progressbar" 
+                         style="width: ${(produto.valor_total / totalGeral * 100).toFixed(1)}%">
+                        ${(produto.valor_total / totalGeral * 100).toFixed(1)}%
+                    </div>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Função para atualizar dados
+function atualizarDados() {
+    // Mostrar loading em todos os elementos
+    document.querySelectorAll('.metric-value').forEach(el => {
+        el.innerHTML = '<span class="loading"></span>';
+    });
+    
+    carregarDados();
+}
+
+// Carregar dados ao iniciar
+document.addEventListener('DOMContentLoaded', function() {
+    carregarDados();
+    
+    // Atualizar ao mudar período
+    document.getElementById('periodoSelect').addEventListener('change', atualizarDados);
+});
+</script>
+{% endblock %}
