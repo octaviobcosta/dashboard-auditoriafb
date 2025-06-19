@@ -105,9 +105,21 @@
     font-size: 0.9rem;
 }
 
-.rank-1 { background: #F1C232; color: var(--dark-bg); }
-.rank-2 { background: #C0C0C0; color: var(--dark-bg); }
-.rank-3 { background: #CD7F32; color: var(--dark-bg); }
+.rank-1 { 
+    background: #F1C232; 
+    color: var(--dark-bg); 
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.rank-2 { 
+    background: #C0C0C0; 
+    color: var(--dark-bg);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.rank-3 { 
+    background: #CD7F32; 
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
 </style>
 {% endblock %}
 
@@ -349,31 +361,37 @@
                             <tbody id="performanceUnidadesTable">
                                 <tr>
                                     <td>BB Centro</td>
-                                    <td>R$ 458.320</td>
-                                    <td><span class="text-success">+15.2%</span></td>
+                                    <td class="faturamento-unidade">R$ 458.320</td>
+                                    <td class="crescimento-unidade"><span class="text-success">+15.2%</span></td>
                                     <td>
                                         <div class="progress" style="height: 15px;">
-                                            <div class="progress-bar bg-success" style="width: 92%">92%</div>
+                                            <div class="progress-bar bg-success" style="width: 92%">
+                                                <span style="font-size: 0.75rem; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">92%</span>
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td>Blue Note</td>
-                                    <td>R$ 387.150</td>
-                                    <td><span class="text-success">+8.7%</span></td>
+                                    <td class="faturamento-unidade">R$ 387.150</td>
+                                    <td class="crescimento-unidade"><span class="text-success">+8.7%</span></td>
                                     <td>
                                         <div class="progress" style="height: 15px;">
-                                            <div class="progress-bar bg-warning" style="width: 78%">78%</div>
+                                            <div class="progress-bar bg-warning" style="width: 78%">
+                                                <span style="font-size: 0.75rem; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">78%</span>
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td>BB Granja</td>
-                                    <td>R$ 312.890</td>
-                                    <td><span class="text-danger">-2.3%</span></td>
+                                    <td class="faturamento-unidade">R$ 312.890</td>
+                                    <td class="crescimento-unidade"><span class="text-danger">-2.3%</span></td>
                                     <td>
                                         <div class="progress" style="height: 15px;">
-                                            <div class="progress-bar bg-danger" style="width: 65%">65%</div>
+                                            <div class="progress-bar bg-danger" style="width: 65%">
+                                                <span style="font-size: 0.75rem; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">65%</span>
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>
@@ -394,18 +412,7 @@ let chartVendas = null;
 let chartCategorias = null;
 let chartUnidades = null;
 
-// Função para formatar valores monetários
-function formatarMoeda(valor) {
-    return new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL'
-    }).format(valor);
-}
-
-// Função para formatar números
-function formatarNumero(numero) {
-    return new Intl.NumberFormat('pt-BR').format(numero);
-}
+// As funções de formatação agora estão em formatters.js
 
 // Função para carregar dados do dashboard
 async function carregarDados() {
@@ -419,14 +426,14 @@ async function carregarDados() {
         const data = await response.json();
         
         // Atualizar métricas principais
-        document.getElementById('totalVendas').textContent = formatarMoeda(data.resumo.total_vendas || 1584320);
-        document.getElementById('custoTotal').textContent = formatarMoeda(data.resumo.total_vendas * 0.65 || 1029808);
+        document.getElementById('totalVendas').textContent = formatarValorAbreviado(data.resumo.total_vendas || 1584320);
+        document.getElementById('custoTotal').textContent = formatarValorAbreviado(data.resumo.total_vendas * 0.65 || 1029808);
         
         // Atualizar métricas secundárias
-        document.getElementById('totalProdutos').textContent = formatarNumero(data.resumo.total_produtos || 12847);
-        document.getElementById('ticketMedio').textContent = formatarMoeda(data.resumo.ticket_medio || 123.25);
-        document.getElementById('totalDescontos').textContent = formatarMoeda(data.resumo.total_descontos || 48950);
-        document.getElementById('totalClientes').textContent = formatarNumero(8432);
+        document.getElementById('totalProdutos').textContent = formatarNumeroAbreviado(data.resumo.total_produtos || 12847);
+        document.getElementById('ticketMedio').textContent = formatarValorAbreviado(data.resumo.ticket_medio || 123.25);
+        document.getElementById('totalDescontos').textContent = formatarValorAbreviado(data.resumo.total_descontos || 48950);
+        document.getElementById('totalClientes').textContent = formatarNumeroAbreviado(8432);
         
         // Atualizar gráficos
         atualizarGraficoVendas(data.dados);
@@ -446,14 +453,14 @@ async function carregarDados() {
 // Função para carregar dados mockados
 function carregarDadosMock() {
     // Métricas principais
-    document.getElementById('totalVendas').textContent = formatarMoeda(1584320);
-    document.getElementById('custoTotal').textContent = formatarMoeda(1029808);
+    document.getElementById('totalVendas').textContent = formatarValorAbreviado(1584320);
+    document.getElementById('custoTotal').textContent = formatarValorAbreviado(1029808);
     
     // Métricas secundárias
-    document.getElementById('totalProdutos').textContent = formatarNumero(12847);
-    document.getElementById('ticketMedio').textContent = formatarMoeda(123.25);
-    document.getElementById('totalDescontos').textContent = formatarMoeda(48950);
-    document.getElementById('totalClientes').textContent = formatarNumero(8432);
+    document.getElementById('totalProdutos').textContent = formatarNumeroAbreviado(12847);
+    document.getElementById('ticketMedio').textContent = formatarValorAbreviado(123.25);
+    document.getElementById('totalDescontos').textContent = formatarValorAbreviado(48950);
+    document.getElementById('totalClientes').textContent = formatarNumeroAbreviado(8432);
     
     // Atualizar gráficos com dados mock
     atualizarGraficoVendas([]);
@@ -476,12 +483,30 @@ function atualizarGraficoVendas(dados) {
     const valores = [];
     const custos = [];
     
+    // Gerar dados realistas com tendência crescente e variação semanal
+    const baseVendas = 45000;
+    const baseCustos = 28000;
+    
     for (let i = 29; i >= 0; i--) {
         const data = new Date();
         data.setDate(data.getDate() - i);
+        const diaSemana = data.getDay();
+        
+        // Fator de crescimento ao longo do mês
+        const fatorCrescimento = 1 + (29 - i) * 0.01;
+        
+        // Variação por dia da semana (sexta e sábado mais altos)
+        const fatorDiaSemana = diaSemana === 5 ? 1.4 : diaSemana === 6 ? 1.6 : diaSemana === 0 ? 1.2 : 1.0;
+        
+        // Adicionar ruído aleatório
+        const variacaoAleatoria = 0.9 + Math.random() * 0.2;
+        
+        const vendaDia = baseVendas * fatorCrescimento * fatorDiaSemana * variacaoAleatoria;
+        const custoDia = baseCustos * fatorCrescimento * fatorDiaSemana * variacaoAleatoria * 0.65;
+        
         labels.push(data.toLocaleDateString('pt-BR', { day: '2d', month: '2d' }));
-        valores.push(45000 + Math.random() * 35000);
-        custos.push(30000 + Math.random() * 20000);
+        valores.push(vendaDia);
+        custos.push(custoDia);
     }
     
     if (chartVendas) {
@@ -530,7 +555,7 @@ function atualizarGraficoVendas(dados) {
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            return context.dataset.label + ': ' + formatarMoeda(context.parsed.y);
+                            return context.dataset.label + ': ' + formatarValorAbreviado(context.parsed.y);
                         }
                     }
                 }
@@ -541,7 +566,7 @@ function atualizarGraficoVendas(dados) {
                     ticks: {
                         color: '#ffffff',
                         callback: function(value) {
-                            return formatarMoeda(value);
+                            return formatarValorAbreviado(value);
                         }
                     },
                     grid: {
@@ -609,7 +634,7 @@ function atualizarGraficoCategorias(categorias) {
                         label: function(context) {
                             const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
                             const percentage = ((context.parsed / total) * 100).toFixed(1);
-                            return context.label + ': ' + formatarMoeda(context.parsed) + ' (' + percentage + '%)';
+                            return context.label + ': ' + formatarValorAbreviado(context.parsed) + ' (' + percentage + '%)';
                         }
                     }
                 }
@@ -629,15 +654,15 @@ function atualizarGraficoUnidades() {
     chartUnidades = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: ['BB Centro', 'Blue Note', 'BB Granja', 'Arcos', 'Riviera'],
+            labels: ['BB Centro', 'Blue Note', 'BB Granja', 'Arcos', 'Riviera', 'Girondino', 'Orfeu'],
             datasets: [{
-                label: 'Faturamento',
-                data: [458320, 387150, 312890, 278450, 198760],
+                label: 'Faturamento Atual',
+                data: [458320, 387150, 312890, 278450, 198760, 165230, 142870],
                 backgroundColor: '#F1C232',
                 borderRadius: 8
             }, {
-                label: 'Meta',
-                data: [500000, 450000, 400000, 350000, 300000],
+                label: 'Meta Mensal',
+                data: [500000, 450000, 400000, 350000, 300000, 250000, 200000],
                 backgroundColor: 'rgba(255, 255, 255, 0.2)',
                 borderRadius: 8
             }]
@@ -659,7 +684,7 @@ function atualizarGraficoUnidades() {
                     ticks: {
                         color: '#ffffff',
                         callback: function(value) {
-                            return formatarMoeda(value);
+                            return formatarValorAbreviado(value);
                         }
                     },
                     grid: {
@@ -701,8 +726,8 @@ function atualizarTabelaTopProdutos(dados) {
             <tr>
                 <td><span class="rank-badge ${rankClass}">${index + 1}</span></td>
                 <td>${produto.nome}</td>
-                <td>${formatarNumero(produto.vendas)}</td>
-                <td>${formatarMoeda(produto.faturamento)}</td>
+                <td>${formatarNumeroAbreviado(produto.vendas)}</td>
+                <td>${formatarValorAbreviado(produto.faturamento)}</td>
             </tr>
         `;
     }).join('');
@@ -718,9 +743,19 @@ function atualizarDados() {
     carregarDados();
 }
 
+// Função para formatar dados estáticos da tabela
+function formatarTabelaPerformance() {
+    // Formatar valores de faturamento
+    document.querySelectorAll('.faturamento-unidade').forEach(td => {
+        const valor = parseFloat(td.textContent.replace('R$', '').replace('.', '').replace(',', '.'));
+        td.textContent = formatarValorAbreviado(valor);
+    });
+}
+
 // Carregar dados ao iniciar
 document.addEventListener('DOMContentLoaded', function() {
     carregarDados();
+    formatarTabelaPerformance();
     
     // Atualizar ao mudar período
     document.getElementById('periodoSelect').addEventListener('change', atualizarDados);
