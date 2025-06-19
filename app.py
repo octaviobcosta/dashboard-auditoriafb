@@ -298,11 +298,11 @@ def update_configuracao(chave):
 # ========== Inicialização ==========
 def init_db():
     """Cria usuário admin padrão se não existir"""
-    admin_email = Config.ADMIN_USER + '@auditoriafb.com.br'
+    admin_email = 'octavio@eshows.com.br'
     if not db.get_usuario_by_email(admin_email):
         db.create_usuario({
             'email': admin_email,
-            'nome': 'Administrador',
+            'nome': 'Octavio Costa',
             'senha_hash': Config.ADMIN_PASSWORD_HASH,
             'perfil': 'admin',
             'cargo': 'Administrador do Sistema',
