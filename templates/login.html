@@ -147,6 +147,12 @@
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
+            z-index: 1;
+        }
+        
+        .btn-login span {
+            position: relative;
+            z-index: 2;
         }
         
         .btn-login::before {
@@ -156,19 +162,20 @@
             left: 50%;
             width: 0;
             height: 0;
-            background: rgba(26, 26, 26, 0.2);
+            background: rgba(26, 26, 26, 0.9);
             border-radius: 50%;
             transform: translate(-50%, -50%);
             transition: width 0.6s, height 0.6s;
+            z-index: 0;
         }
         
         .btn-login:hover::before {
-            width: 300px;
-            height: 300px;
+            width: 600px;
+            height: 600px;
         }
         
         .btn-login:hover {
-            background: var(--secondary-color);
+            color: var(--primary-color);
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(241, 194, 50, 0.3);
         }
@@ -256,7 +263,7 @@
 <body>
     <div class="login-container">
         <div class="login-header">
-            <img src="{{ url_for('static', filename='images/logo/logofb.png') }}" alt="Auditoria FB">
+            <img src="{{ url_for('static', filename='images/logo/logofbcor.png') }}" alt="Auditoria FB">
             <h2>Bem-vindo de volta</h2>
             <p>Entre com suas credenciais para continuar</p>
         </div>
@@ -275,7 +282,7 @@
                 </label>
                 <div class="input-group">
                     <input type="email" class="form-control" id="email" name="email" 
-                           placeholder="seu@email.com" required autofocus>
+                           placeholder="seu@email.com" required autofocus autocomplete="email">
                     <i class="fas fa-at input-icon"></i>
                 </div>
             </div>
@@ -297,10 +304,9 @@
             </button>
         </form>
         
-        <div class="text-center mt-4">
-            <small class="text-muted">
-                Acesso administrativo: octavio@eshows.com.br
-            </small>
+        <div class="text-center mt-4" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <small class="text-muted">Desenvolvido por ®</small>
+            <img src="{{ url_for('static', filename='images/logo/logofablab.png') }}" alt="FabLab" style="height: 20px; opacity: 0.7;">
         </div>
     </div>
     
