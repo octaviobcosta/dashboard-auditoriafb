@@ -92,6 +92,33 @@ def index():
 def dashboard():
     return render_template('dashboard.html')
 
+@app.route('/indicators')
+@login_required
+def indicators():
+    return render_template('indicators.html')
+
+# Rotas administrativas
+@app.route('/import-data')
+@login_required
+def import_data():
+    if current_user.perfil not in ['admin', 'gestor']:
+        return redirect(url_for('dashboard'))
+    return render_template('import_data.html')
+
+@app.route('/users')
+@login_required
+def users():
+    if current_user.perfil != 'admin':
+        return redirect(url_for('dashboard'))
+    return render_template('users.html')
+
+@app.route('/settings')
+@login_required
+def settings():
+    if current_user.perfil != 'admin':
+        return redirect(url_for('dashboard'))
+    return render_template('settings.html')
+
 # ========== API de Indicadores ==========
 @app.route('/api/indicadores', methods=['GET'])
 @login_required

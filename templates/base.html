@@ -111,6 +111,22 @@
             font-size: 1.1rem;
         }
         
+        .sidebar-divider {
+            margin: 20px 16px;
+            border-color: var(--border-color);
+            opacity: 0.5;
+        }
+        
+        .nav-section-title {
+            padding: 8px 24px;
+            margin: 8px 12px 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+        }
+        
         .sidebar .nav-link:hover {
             background: rgba(241, 194, 50, 0.1);
             color: var(--primary-color);
@@ -354,37 +370,40 @@
             <nav class="col-md-2 d-none d-md-block sidebar">
                 <div class="position-sticky">
                     <ul class="nav flex-column">
+                        <!-- Navegação Principal -->
                         <li class="nav-item">
                             <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
-                                <i class="fas fa-home me-2"></i>Dashboard
+                                <i class="fas fa-tachometer-alt"></i>Dashboard
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#">
-                                <i class="fas fa-chart-bar me-2"></i>Indicadores
+                            <a class="nav-link {% if request.endpoint == 'indicators' %}active{% endif %}" href="{{ url_for('indicators') }}">
+                                <i class="fas fa-chart-line"></i>Indicadores
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#">
-                                <i class="fas fa-shopping-cart me-2"></i>Vendas
-                            </a>
-                        </li>
+                        
                         {% if current_user.perfil in ['admin', 'gestor'] %}
+                        <!-- Separador Visual -->
+                        <li class="nav-divider"><hr class="sidebar-divider"></li>
+                        
+                        <!-- Ações Administrativas -->
+                        <li class="nav-section-title">Administração</li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#">
-                                <i class="fas fa-upload me-2"></i>Importar Dados
+                            <a class="nav-link {% if request.endpoint == 'import_data' %}active{% endif %}" href="{{ url_for('import_data') }}">
+                                <i class="fas fa-file-import"></i>Importar Dados
                             </a>
                         </li>
                         {% endif %}
+                        
                         {% if current_user.perfil == 'admin' %}
                         <li class="nav-item">
-                            <a class="nav-link" href="#">
-                                <i class="fas fa-users me-2"></i>Usuários
+                            <a class="nav-link {% if request.endpoint == 'users' %}active{% endif %}" href="{{ url_for('users') }}">
+                                <i class="fas fa-users"></i>Usuários
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#">
-                                <i class="fas fa-cogs me-2"></i>Configurações
+                            <a class="nav-link {% if request.endpoint == 'settings' %}active{% endif %}" href="{{ url_for('settings') }}">
+                                <i class="fas fa-cog"></i>Configurações
                             </a>
                         </li>
                         {% endif %}
