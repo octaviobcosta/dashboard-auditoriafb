@@ -1,336 +1,684 @@
-{% extends "base.html" %}
-
-{% block title %}Indicadores - Dashboard Auditoria FB{% endblock %}
-
-{% block content %}
-<div class="container-fluid px-4 py-4">
-    <!-- Header com Título e Filtros -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <h1 class="h2 mb-0">Indicadores de Performance</h1>
-                <div class="d-flex gap-2">
-                    <select class="form-select form-select-sm" style="width: 200px;">
-                        <option value="">Todas as Unidades</option>
-                        <option value="bb-centro">BB Centro</option>
-                        <option value="blue-note">Blue Note</option>
-                        <option value="bb-granja">BB Granja</option>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indicadores - Auditoria FB</title>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Dashboard CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v=2.0">
+    
+    <style>
+        /* KPI Specific Styles */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-lg);
+            margin-bottom: var(--space-2xl);
+        }
+        
+        .kpi-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            padding: 0;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            border-color: rgba(241, 194, 50, 0.2);
+        }
+        
+        .kpi-content {
+            padding: var(--space-lg);
+            padding-bottom: 0;
+        }
+        
+        .kpi-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: var(--space-lg);
+        }
+        
+        .kpi-info {
+            flex: 1;
+        }
+        
+        .kpi-title {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: var(--space-sm);
+        }
+        
+        .kpi-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: var(--space-md);
+        }
+        
+        .kpi-meta {
+            display: flex;
+            align-items: center;
+            gap: var(--space-lg);
+            font-size: 0.875rem;
+        }
+        
+        .kpi-gauge {
+            width: 100px;
+            height: 100px;
+            flex-shrink: 0;
+        }
+        
+        .kpi-chart {
+            height: 80px;
+            width: 100%;
+            display: block;
+        }
+        
+        @media (max-width: 1200px) {
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .comparison-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--space-md) 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+        
+        .comparison-bar {
+            flex: 1;
+            height: 8px;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-full);
+            margin: 0 var(--space-md);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .comparison-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: var(--radius-full);
+            transition: width 0.6s ease;
+        }
+        
+        .metric-goal {
+            color: var(--text-muted);
+        }
+        
+        .metric-goal span {
+            color: var(--primary);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header-clean">
+        <div class="header-content">
+            <div class="header-left">
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <a href="{{ url_for('dashboard') }}" class="header-brand">
+                    <img src="{{ url_for('static', filename='images/logo/logofb_white.png') }}" alt="Logo" class="brand-logo">
+                    <span class="brand-title">Auditoria FB</span>
+                </a>
+            </div>
+            
+            <div class="header-right">
+                <!-- Filters -->
+                <div class="header-filters">
+                    <select class="filter-select" id="yearFilter">
+                        <option value="2024">2024</option>
+                        <option value="2025" selected>2025</option>
                     </select>
-                    <select class="form-select form-select-sm" style="width: 150px;">
-                        <option value="month">Mensal</option>
-                        <option value="week">Semanal</option>
-                        <option value="day">Diário</option>
+                    
+                    <select class="filter-select" id="periodFilter">
+                        <option value="current_week">Semana Atual</option>
+                        <option value="current_month" selected>Mês Atual</option>
+                        <option value="q1">1° Trimestre</option>
+                        <option value="q2">2° Trimestre</option>
+                        <option value="q3">3° Trimestre</option>
+                        <option value="q4">4° Trimestre</option>
+                        <option value="ytd">Year to Date</option>
+                        <option value="full_year">Ano Completo</option>
+                        <option value="custom">Período Personalizado</option>
+                    </select>
+                    
+                    <select class="filter-select" id="squadFilter">
+                        <option value="all">Todos os Squads</option>
+                        <option value="squad1">Squad 1</option>
+                        <option value="squad2">Squad 2</option>
+                        <option value="squad3">Squad 3</option>
+                    </select>
+                    
+                    <select class="filter-select" id="houseFilter">
+                        <option value="all">Todas as Casas</option>
+                        <option value="bb_centro">BB Centro</option>
+                        <option value="blue_note">Blue Note</option>
+                        <option value="bb_granja">BB Granja</option>
+                        <option value="arcos">Arcos</option>
                     </select>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- KPIs Principais -->
-    <div class="row g-4 mb-4">
-        <div class="col-xl-3 col-lg-6">
-            <div class="card metric-card">
-                <div class="metric-icon">
-                    <i class="fas fa-percentage fa-2x text-warning mb-3"></i>
-                </div>
-                <div class="metric-value">18.5%</div>
-                <div class="metric-label">Margem de Lucro</div>
-                <div class="metric-trend mt-3">
-                    <span class="text-success"><i class="fas fa-arrow-up"></i> 2.3%</span>
-                    <small class="text-muted">vs mês anterior</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-lg-6">
-            <div class="card metric-card">
-                <div class="metric-icon">
-                    <i class="fas fa-times-circle fa-2x text-danger mb-3"></i>
-                </div>
-                <div class="metric-value">1.85%</div>
-                <div class="metric-label">Taxa de Cancelamento</div>
-                <div class="metric-trend mt-3">
-                    <span class="text-danger"><i class="fas fa-arrow-up"></i> 0.12%</span>
-                    <small class="text-muted">vs mês anterior</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-lg-6">
-            <div class="card metric-card">
-                <div class="metric-icon">
-                    <i class="fas fa-undo fa-2x text-info mb-3"></i>
-                </div>
-                <div class="metric-value">0.44%</div>
-                <div class="metric-label">Taxa de Estorno</div>
-                <div class="metric-trend mt-3">
-                    <span class="text-success"><i class="fas fa-arrow-down"></i> 0.05%</span>
-                    <small class="text-muted">vs mês anterior</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-lg-6">
-            <div class="card metric-card">
-                <div class="metric-icon">
-                    <i class="fas fa-chart-line fa-2x text-success mb-3"></i>
-                </div>
-                <div class="metric-value">12.8%</div>
-                <div class="metric-label">Crescimento MoM</div>
-                <div class="metric-trend mt-3">
-                    <span class="text-success"><i class="fas fa-arrow-up"></i> 3.2%</span>
-                    <small class="text-muted">aceleração</small>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Gráficos de Análise -->
-    <div class="row g-4 mb-4">
-        <!-- Gráfico de Cancelamentos por Motivo -->
-        <div class="col-lg-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Cancelamentos por Motivo</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="cancelationReasonsChart" height="300"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Gráfico de Tendência de Indicadores -->
-        <div class="col-lg-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Tendência de Indicadores</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="indicatorsTrendChart" height="300"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Ranking por Unidade -->
-    <div class="row g-4">
-        <div class="col-lg-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">Performance por Unidade</h5>
-                    <select class="form-select form-select-sm" style="width: 200px;">
-                        <option value="profit">Margem de Lucro</option>
-                        <option value="cancel">Taxa de Cancelamento</option>
-                        <option value="refund">Taxa de Estorno</option>
-                        <option value="growth">Crescimento</option>
-                    </select>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Ranking</th>
-                                    <th>Unidade</th>
-                                    <th>Margem de Lucro</th>
-                                    <th>Taxa Cancelamento</th>
-                                    <th>Taxa Estorno</th>
-                                    <th>Crescimento MoM</th>
-                                    <th>Score Geral</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><span class="badge bg-success">1°</span></td>
-                                    <td>BB Centro</td>
-                                    <td><span class="text-success">22.5%</span></td>
-                                    <td><span class="text-success">1.2%</span></td>
-                                    <td><span class="text-success">0.3%</span></td>
-                                    <td><span class="text-success">+15.2%</span></td>
-                                    <td>
-                                        <div class="progress" style="height: 20px;">
-                                            <div class="progress-bar bg-success" role="progressbar" style="width: 92%">
-                                                <span style="text-shadow: 0 1px 2px rgba(0,0,0,0.5);">92</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><span class="badge bg-warning">2°</span></td>
-                                    <td>Blue Note</td>
-                                    <td><span class="text-warning">18.3%</span></td>
-                                    <td><span class="text-warning">1.8%</span></td>
-                                    <td><span class="text-success">0.4%</span></td>
-                                    <td><span class="text-success">+12.1%</span></td>
-                                    <td>
-                                        <div class="progress" style="height: 20px;">
-                                            <div class="progress-bar bg-warning" role="progressbar" style="width: 78%">
-                                                <span style="text-shadow: 0 1px 2px rgba(0,0,0,0.5);">78</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><span class="badge bg-info">3°</span></td>
-                                    <td>BB Granja</td>
-                                    <td><span class="text-warning">16.8%</span></td>
-                                    <td><span class="text-danger">2.1%</span></td>
-                                    <td><span class="text-warning">0.5%</span></td>
-                                    <td><span class="text-warning">+8.5%</span></td>
-                                    <td>
-                                        <div class="progress" style="height: 20px;">
-                                            <div class="progress-bar bg-info" role="progressbar" style="width: 65%">
-                                                <span style="text-shadow: 0 1px 2px rgba(0,0,0,0.5);">65</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                
+                <!-- User Menu -->
+                <div class="user-menu">
+                    <button class="user-button" id="userMenuToggle">
+                        <span>{{ current_user.nome }}</span>
+                        <div class="user-avatar">
+                            {{ current_user.nome[0]|upper }}
+                        </div>
+                        <i class="fas fa-chevron-down" style="font-size: 0.75rem;"></i>
+                    </button>
+                    
+                    <div class="user-dropdown" id="userDropdown">
+                        <a href="#" class="dropdown-item">
+                            <i class="fas fa-user"></i>
+                            <span>Meu Perfil</span>
+                        </a>
+                        <a href="#" class="dropdown-item">
+                            <i class="fas fa-cog"></i>
+                            <span>Configurações</span>
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="{{ url_for('logout') }}" class="dropdown-item">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Sair</span>
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
+    </header>
+    
+    <div class="clean-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar-clean" id="sidebar">
+            <div class="sidebar-content">
+                <!-- Main Navigation -->
+                <nav class="nav-section">
+                    <ul class="nav-menu">
+                        <li class="nav-item">
+                            <a href="{{ url_for('dashboard') }}" class="nav-link">
+                                <i class="fas fa-th-large nav-icon"></i>
+                                <span class="nav-text">Dashboard</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ url_for('indicators') }}" class="nav-link active">
+                                <i class="fas fa-chart-line nav-icon"></i>
+                                <span class="nav-text">Indicadores</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                
+                <!-- Admin Section -->
+                <nav class="nav-admin">
+                    <div class="nav-divider"></div>
+                    <ul class="nav-menu">
+                        {% if current_user.perfil in ['admin', 'gestor'] %}
+                        <li class="nav-item">
+                            <a href="{{ url_for('import_data') }}" class="nav-link">
+                                <i class="fas fa-upload nav-icon"></i>
+                                <span class="nav-text">Importar Dados</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% if current_user.perfil == 'admin' %}
+                        <li class="nav-item">
+                            <a href="{{ url_for('settings') }}" class="nav-link">
+                                <i class="fas fa-cog nav-icon"></i>
+                                <span class="nav-text">Configurações</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                        <li class="nav-item">
+                            <a href="{{ url_for('logout') }}" class="nav-link">
+                                <i class="fas fa-sign-out-alt nav-icon"></i>
+                                <span class="nav-text">Sair</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-clean">
+            <div class="dashboard-content">
+                <!-- Page Header -->
+                <div class="page-header">
+                    <h1 class="page-title">Indicadores de Performance</h1>
+                    <p class="page-subtitle">Análise detalhada dos KPIs e métricas de desempenho</p>
+                </div>
+                
+                <!-- Main KPIs -->
+                <div class="kpi-grid">
+                    <!-- Margem de Lucro -->
+                    <div class="kpi-card">
+                        <div class="kpi-content">
+                            <div class="kpi-header">
+                                <div class="kpi-info">
+                                    <p class="kpi-title">MARGEM DE LUCRO</p>
+                                    <h2 class="kpi-value" style="color: var(--success);">18.5%</h2>
+                                    <div class="kpi-meta">
+                                        <p class="metric-goal">Meta: <span>20%</span></p>
+                                        <div class="metric-stat">
+                                            <i class="fas fa-arrow-up" style="color: var(--success);"></i>
+                                            <span class="stat-value positive">+2.3pp</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="kpi-gauge">
+                                    <canvas id="profitGauge" width="100" height="100"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <canvas id="profitTrend" class="kpi-chart"></canvas>
+                    </div>
+                    
+                    <!-- Taxa de Crescimento -->
+                    <div class="kpi-card">
+                        <div class="kpi-content">
+                            <div class="kpi-header">
+                                <div class="kpi-info">
+                                    <p class="kpi-title">CRESCIMENTO MOM</p>
+                                    <h2 class="kpi-value" style="color: var(--primary);">12.8%</h2>
+                                    <div class="kpi-meta">
+                                        <p class="metric-goal">Meta: <span>10%</span></p>
+                                        <div class="metric-stat">
+                                            <i class="fas fa-arrow-up" style="color: var(--success);"></i>
+                                            <span class="stat-value positive">+3.2pp</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="kpi-gauge">
+                                    <canvas id="growthGauge" width="100" height="100"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <canvas id="growthTrend" class="kpi-chart"></canvas>
+                    </div>
+                    
+                    <!-- Taxa de Cancelamento -->
+                    <div class="kpi-card">
+                        <div class="kpi-content">
+                            <div class="kpi-header">
+                                <div class="kpi-info">
+                                    <p class="kpi-title">TAXA DE CANCELAMENTO</p>
+                                    <h2 class="kpi-value" style="color: var(--danger);">1.85%</h2>
+                                    <div class="kpi-meta">
+                                        <p class="metric-goal">Meta: <span>< 2%</span></p>
+                                        <div class="metric-stat">
+                                            <i class="fas fa-arrow-up" style="color: var(--danger);"></i>
+                                            <span class="stat-value negative">+0.12pp</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="kpi-gauge">
+                                    <canvas id="cancelGauge" width="100" height="100"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <canvas id="cancelTrend" class="kpi-chart"></canvas>
+                    </div>
+                    
+                    <!-- NPS Score -->
+                    <div class="kpi-card">
+                        <div class="kpi-content">
+                            <div class="kpi-header">
+                                <div class="kpi-info">
+                                    <p class="kpi-title">NPS SCORE</p>
+                                    <h2 class="kpi-value" style="color: var(--info);">72</h2>
+                                    <div class="kpi-meta">
+                                        <p class="metric-goal">Meta: <span>75</span></p>
+                                        <div class="metric-stat">
+                                            <i class="fas fa-arrow-up" style="color: var(--success);"></i>
+                                            <span class="stat-value positive">+5</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="kpi-gauge">
+                                    <canvas id="npsGauge" width="100" height="100"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <canvas id="npsTrend" class="kpi-chart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Detailed Analysis -->
+                <div class="chart-grid">
+                    <!-- Performance Comparison -->
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 class="chart-title">Comparativo de Performance</h3>
+                        </div>
+                        <div style="padding: var(--space-lg) 0;">
+                            <div class="comparison-item">
+                                <span style="width: 120px; font-weight: 600;">BB Centro</span>
+                                <div class="comparison-bar">
+                                    <div class="comparison-fill" style="width: 92%;"></div>
+                                </div>
+                                <span style="width: 80px; text-align: right; font-weight: 600; color: var(--primary);">92 pts</span>
+                            </div>
+                            
+                            <div class="comparison-item">
+                                <span style="width: 120px; font-weight: 600;">Blue Note</span>
+                                <div class="comparison-bar">
+                                    <div class="comparison-fill" style="width: 85%;"></div>
+                                </div>
+                                <span style="width: 80px; text-align: right; font-weight: 600; color: var(--primary);">85 pts</span>
+                            </div>
+                            
+                            <div class="comparison-item">
+                                <span style="width: 120px; font-weight: 600;">BB Granja</span>
+                                <div class="comparison-bar">
+                                    <div class="comparison-fill" style="width: 78%;"></div>
+                                </div>
+                                <span style="width: 80px; text-align: right; font-weight: 600; color: var(--primary);">78 pts</span>
+                            </div>
+                            
+                            <div class="comparison-item" style="border: none;">
+                                <span style="width: 120px; font-weight: 600;">Arcos</span>
+                                <div class="comparison-bar">
+                                    <div class="comparison-fill" style="width: 65%;"></div>
+                                </div>
+                                <span style="width: 80px; text-align: right; font-weight: 600; color: var(--primary);">65 pts</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Breakdown Analysis -->
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 class="chart-title">Análise de Cancelamentos</h3>
+                        </div>
+                        <div class="chart-container" style="height: 250px;">
+                            <canvas id="cancelReasons"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Trend Analysis -->
+                <div class="chart-card" style="margin-top: var(--space-lg);">
+                    <div class="chart-header">
+                        <div>
+                            <h3 class="chart-title">Evolução dos Indicadores</h3>
+                            <p class="chart-subtitle">Últimos 12 meses</p>
+                        </div>
+                        <div class="chart-filters">
+                            <button class="filter-tab active">Todos</button>
+                            <button class="filter-tab">Financeiro</button>
+                            <button class="filter-tab">Operacional</button>
+                        </div>
+                    </div>
+                    <div class="chart-container" style="height: 350px;">
+                        <canvas id="indicatorsTrend"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
-</div>
-
-<style>
-.metric-card {
-    position: relative;
-    text-align: center;
-    padding: 2rem;
-    transition: all 0.3s ease;
-}
-
-.metric-icon {
-    opacity: 0.8;
-}
-
-.metric-value {
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin: 0.5rem 0;
-}
-
-.metric-trend {
-    font-size: 0.9rem;
-}
-
-.progress {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-.progress-bar {
-    font-weight: 600;
-}
-</style>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-// Gráfico de Pizza - Cancelamentos por Motivo
-const ctxPie = document.getElementById('cancelationReasonsChart').getContext('2d');
-const cancelationReasonsChart = new Chart(ctxPie, {
-    type: 'doughnut',
-    data: {
-        labels: ['Remoção de Couvert', 'Troca de Produto', 'Erro de Lançamento', 'Desistência', 'Produto Indisponível', 'Outros'],
-        datasets: [{
-            data: [30.1, 25.4, 18.2, 12.5, 8.3, 5.5],
-            backgroundColor: [
-                '#F1C232',
-                '#3498db',
-                '#e74c3c',
-                '#9b59b6',
-                '#f39c12',
-                '#95a5a6'
-            ],
-            borderWidth: 0
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'right',
-                labels: {
-                    color: '#ffffff',
-                    padding: 15,
-                    font: {
-                        size: 12
-                    }
-                }
+    
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/formatters.js') }}"></script>
+    
+    <script>
+    // Sidebar Toggle
+    document.getElementById('sidebarToggle').addEventListener('click', function() {
+        document.getElementById('sidebar').classList.toggle('collapsed');
+    });
+    
+    // User Menu Toggle
+    document.getElementById('userMenuToggle').addEventListener('click', function(e) {
+        e.stopPropagation();
+        document.getElementById('userDropdown').classList.toggle('show');
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function() {
+        document.getElementById('userDropdown').classList.remove('show');
+    });
+    
+    // Gauge Chart Function
+    function createGauge(canvasId, value, maxValue, color) {
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        const percentage = (value / maxValue) * 100;
+        
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                datasets: [{
+                    data: [percentage, 100 - percentage],
+                    backgroundColor: [color, 'rgba(255, 255, 255, 0.05)'],
+                    borderWidth: 0
+                }]
             },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        return context.label + ': ' + context.parsed + '%';
+            options: {
+                responsive: false,
+                maintainAspectRatio: false,
+                cutout: '80%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: false }
+                }
+            }
+        });
+    }
+    
+    // Trend Chart Function
+    function createTrendChart(canvasId, data, color) {
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 80);
+        gradient.addColorStop(0, `${color}30`);
+        gradient.addColorStop(1, `${color}00`);
+        
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.map((_, i) => ''),
+                datasets: [{
+                    data: data,
+                    borderColor: color,
+                    backgroundColor: gradient,
+                    borderWidth: 2,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: false,
+                maintainAspectRatio: false,
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: { enabled: false }
+                },
+                scales: {
+                    x: { display: false },
+                    y: { display: false }
+                }
+            }
+        });
+    }
+    
+    // Initialize Charts
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set canvas dimensions for trend charts
+        const trendCharts = document.querySelectorAll('.kpi-chart');
+        trendCharts.forEach(canvas => {
+            canvas.width = canvas.parentElement.offsetWidth;
+            canvas.height = 80;
+        });
+        
+        // Create Gauges
+        createGauge('profitGauge', 18.5, 25, '#4CAF50');
+        createGauge('growthGauge', 12.8, 20, '#F1C232');
+        createGauge('cancelGauge', 1.85, 5, '#F44336');
+        createGauge('npsGauge', 72, 100, '#2196F3');
+        
+        // Create Trend Charts
+        createTrendChart('profitTrend', [15.2, 16.8, 17.3, 16.9, 18.1, 18.5, 18.3, 18.5], '#4CAF50');
+        createTrendChart('growthTrend', [8.5, 9.2, 10.1, 11.3, 12.5, 12.8, 12.6, 12.8], '#F1C232');
+        createTrendChart('cancelTrend', [2.1, 1.95, 1.87, 1.92, 1.88, 1.85, 1.87, 1.85], '#F44336');
+        createTrendChart('npsTrend', [68, 70, 69, 71, 72, 71, 73, 72], '#2196F3');
+        
+        // Cancel Reasons Chart
+        new Chart(document.getElementById('cancelReasons'), {
+            type: 'pie',
+            data: {
+                labels: ['Couvert', 'Troca Produto', 'Erro Lançamento', 'Desistência', 'Outros'],
+                datasets: [{
+                    data: [28.7, 24.3, 19.5, 13.2, 14.3],
+                    backgroundColor: [
+                        '#F1C232',
+                        '#f9d71c',
+                        '#FFD700',
+                        '#FFA500',
+                        '#FF8C00'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            color: '#B8B8B8',
+                            padding: 12,
+                            font: { size: 11 }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + formatarPercentual(context.parsed, 1);
+                            }
+                        }
                     }
                 }
             }
-        }
-    }
-});
-
-// Gráfico de Linha - Tendência de Indicadores
-const ctxLine = document.getElementById('indicatorsTrendChart').getContext('2d');
-const indicatorsTrendChart = new Chart(ctxLine, {
-    type: 'line',
-    data: {
-        labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'],
-        datasets: [{
-            label: 'Margem de Lucro',
-            data: [15.2, 16.8, 17.3, 16.9, 18.1, 18.5],
-            borderColor: '#F1C232',
-            backgroundColor: 'rgba(241, 194, 50, 0.1)',
-            tension: 0.3,
-            borderWidth: 3
-        }, {
-            label: 'Taxa de Cancelamento',
-            data: [2.1, 1.95, 1.87, 1.92, 1.88, 1.85],
-            borderColor: '#e74c3c',
-            backgroundColor: 'rgba(231, 76, 60, 0.1)',
-            tension: 0.3,
-            borderWidth: 3
-        }, {
-            label: 'Taxa de Estorno',
-            data: [0.52, 0.48, 0.45, 0.47, 0.43, 0.44],
-            borderColor: '#3498db',
-            backgroundColor: 'rgba(52, 152, 219, 0.1)',
-            tension: 0.3,
-            borderWidth: 3
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                labels: {
-                    color: '#ffffff',
-                    padding: 15
-                }
-            }
-        },
-        scales: {
-            y: {
-                ticks: {
-                    color: '#ffffff',
-                    callback: function(value) {
-                        return value + '%';
+        });
+        
+        // Indicators Trend Chart
+        const indicatorsCtx = document.getElementById('indicatorsTrend').getContext('2d');
+        new Chart(indicatorsCtx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
+                datasets: [{
+                    label: 'Margem de Lucro',
+                    data: [15.2, 16.8, 17.3, 16.9, 18.1, 18.5, 18.3, 18.5, 18.7, 18.5, 18.8, 18.9],
+                    borderColor: '#4CAF50',
+                    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                    tension: 0.4,
+                    borderWidth: 2
+                }, {
+                    label: 'Taxa de Crescimento',
+                    data: [8.5, 9.2, 10.1, 11.3, 12.5, 12.8, 12.6, 12.8, 13.1, 12.9, 13.2, 13.5],
+                    borderColor: '#F1C232',
+                    backgroundColor: 'rgba(241, 194, 50, 0.1)',
+                    tension: 0.4,
+                    borderWidth: 2
+                }, {
+                    label: 'Taxa de Cancelamento',
+                    data: [2.1, 1.95, 1.87, 1.92, 1.88, 1.85, 1.87, 1.85, 1.83, 1.84, 1.82, 1.80],
+                    borderColor: '#F44336',
+                    backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                    tension: 0.4,
+                    borderWidth: 2,
+                    yAxisID: 'y1'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#B8B8B8',
+                            padding: 20,
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + formatarPercentual(context.parsed.y, 1);
+                            }
+                        }
                     }
                 },
-                grid: {
-                    color: 'rgba(255, 255, 255, 0.1)'
-                }
-            },
-            x: {
-                ticks: {
-                    color: '#ffffff'
-                },
-                grid: {
-                    color: 'rgba(255, 255, 255, 0.1)'
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#7A7A7A' }
+                    },
+                    y: {
+                        position: 'left',
+                        grid: { 
+                            color: 'rgba(255, 255, 255, 0.03)',
+                            drawBorder: false
+                        },
+                        ticks: { 
+                            color: '#7A7A7A',
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    },
+                    y1: {
+                        position: 'right',
+                        display: false,
+                        grid: { display: false }
+                    }
                 }
             }
-        }
-    }
-});
-</script>
-{% endblock %}
+        });
+        
+        // Animate progress bars
+        setTimeout(() => {
+            document.querySelectorAll('.comparison-fill').forEach((bar, index) => {
+                const width = bar.style.width;
+                bar.style.width = '0';
+                setTimeout(() => {
+                    bar.style.width = width;
+                }, index * 200);
+            });
+        }, 500);
+    });
+    </script>
+</body>
+</html>

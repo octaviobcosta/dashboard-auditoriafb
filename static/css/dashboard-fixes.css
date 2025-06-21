@@ -1,0 +1,72 @@
+/* Hotfix para problemas visuais */
+
+/* Força o logo a ter 48px */
+.header-brand img.brand-logo {
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+    min-height: 48px !important;
+}
+
+/* Garante que o sidebar rail e toggle sejam visíveis */
+.sidebar-clean {
+    overflow: visible !important;
+}
+
+/* Posiciona o rail de forma mais simples */
+.sidebar-rail {
+    position: fixed !important;
+    left: 220px !important; /* Na borda da sidebar */
+    top: 72px !important; /* Logo abaixo do header (64px + 8px) */
+    width: 40px !important;
+    height: 40px !important;
+    z-index: 9999 !important;
+    transition: left 0.4s ease !important;
+}
+
+.sidebar-clean.collapsed .sidebar-rail {
+    left: 44px !important; /* Largura da sidebar colapsada - 20px */
+}
+
+/* Garante que o botão seja clicável */
+.sidebar-toggle {
+    width: 36px !important;
+    height: 36px !important;
+    background: #242424 !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    z-index: 10000 !important;
+    pointer-events: all !important;
+    position: relative !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+.sidebar-toggle:hover {
+    background: #2a2a2a !important;
+    border-color: #F1C232 !important;
+}
+
+.sidebar-toggle i {
+    color: #B8B8B8 !important;
+    font-size: 12px !important;
+    pointer-events: none !important;
+}
+
+.sidebar-toggle:hover i {
+    color: #F1C232 !important;
+}
+
+/* Melhora o visual do botão de filtros */
+.btn-advanced-filters {
+    border: none !important;
+    outline: none !important;
+}
+
+/* Garante que o main content se ajuste quando sidebar colapsa */
+.sidebar-clean.collapsed ~ .main-clean {
+    margin-left: var(--sidebar-collapsed) !important;
+}

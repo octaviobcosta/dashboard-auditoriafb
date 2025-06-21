@@ -9,6 +9,7 @@ import os
 
 from config.settings import Config
 from models.database import db
+from services.data_service import data_service
 
 # Definir caminhos para templates e static
 template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'templates'))
@@ -92,30 +93,14 @@ def index():
 def dashboard():
     return render_template('dashboard.html')
 
-@app.route('/dashboard-modern')
-@login_required
-def dashboard_modern():
-    return render_template('dashboard_modern.html')
-
 @app.route('/indicators')
 @login_required
 def indicators():
     return render_template('indicators.html')
 
-@app.route('/indicators-modern')
-@login_required
-def indicators_modern():
-    return render_template('indicators_modern.html')
-
-@app.route('/dashboard-clean')
-@login_required
-def dashboard_clean():
-    return render_template('dashboard_clean.html')
-
-@app.route('/indicators-clean')
-@login_required
-def indicators_clean():
-    return render_template('indicators_clean.html')
+@app.route('/test')
+def test():
+    return render_template('test.html')
 
 # Rotas administrativas
 @app.route('/import-data')
@@ -183,43 +168,126 @@ def create_indicador():
     
     return jsonify(indicador), 201
 
-# ========== API de Produtos Vendidos ==========
-@app.route('/api/produtos-vendidos', methods=['GET'])
+# ========== API de Dashboard ==========
+@app.route('/api/dashboard/summary', methods=['GET'])
 @login_required
-def get_produtos_vendidos():
-    periodo_inicio = request.args.get('periodo_inicio')
-    periodo_fim = request.args.get('periodo_fim')
+def get_dashboard_summary():
+    """Retorna o resumo do dashboard com os 4 cards principais."""
+    # Parâmetros de filtro
+    ano = request.args.get('ano', type=int)
+    mes = request.args.get('mes', type=int)
+    unidade = request.args.get('unidade')
+    squad = request.args.get('squad')
     categoria = request.args.get('categoria')
+    data_inicio = request.args.get('data_inicio')
+    data_fim = request.args.get('data_fim')
     
-    if periodo_inicio:
-        periodo_inicio = datetime.fromisoformat(periodo_inicio)
-    if periodo_fim:
-        periodo_fim = datetime.fromisoformat(periodo_fim)
+    # Converte datas se fornecidas
+    if data_inicio:
+        data_inicio = datetime.fromisoformat(data_inicio).date()
+    if data_fim:
+        data_fim = datetime.fromisoformat(data_fim).date()
     
-    df = db.get_produtos_vendidos(periodo_inicio, periodo_fim, categoria)
+    # Busca resumo usando o serviço
+    resumo = data_service.get_dashboard_summary(
+        data_inicio=data_inicio,
+        data_fim=data_fim,
+        unidade=unidade,
+        squad=squad,
+        categoria=categoria,
+        ano=ano,
+        mes=mes
+    )
     
-    # Análise básica
-    if not df.empty:
-        resumo = {
-            'total_vendas': float(df['valor_total'].sum()),
-            'total_produtos': int(df['quantidade'].sum()),
-            'ticket_medio': float(df['valor_total'].sum() / len(df)),
-            'total_descontos': float(df['descontos'].sum()),
-            'categorias_mais_vendidas': df.groupby('categoria')['valor_total'].sum().nlargest(5).to_dict()
-        }
-    else:
-        resumo = {
-            'total_vendas': 0,
-            'total_produtos': 0,
-            'ticket_medio': 0,
-            'total_descontos': 0,
-            'categorias_mais_vendidas': {}
-        }
+    # Formata valores para exibição
+    def format_value(value):
+        """Formata valores monetários."""
+        if value >= 1000000:
+            return f"R${value/1000000:.2f}M"
+        elif value >= 1000:
+            return f"R${value/1000:.1f}k"
+        else:
+            return f"R${value:.2f}"
     
-    return jsonify({
-        'dados': df.to_dict('records'),
-        'resumo': resumo
-    })
+    # Aplica formatação
+    resumo_formatado = {
+        'produtos_vendidos': {
+            'valor': resumo['produtos_vendidos'],
+            'formatado': format_value(resumo['produtos_vendidos'])
+        },
+        'cancelamentos': {
+            'valor': resumo['cancelamentos'],
+            'formatado': format_value(resumo['cancelamentos'])
+        },
+        'estornos': {
+            'valor': resumo['estornos'],
+            'formatado': format_value(resumo['estornos'])
+        },
+        'estornos_cancelamentos': {
+            'valor': resumo['estornos_cancelamentos'],
+            'formatado': format_value(resumo['estornos_cancelamentos'])
+        },
+        'indice_cancelamento': resumo['indice_cancelamento'],
+        'indice_estorno': resumo['indice_estorno']
+    }
+    
+    return jsonify(resumo_formatado)
+
+@app.route('/api/dashboard/filters', methods=['GET'])
+@login_required
+def get_dashboard_filters():
+    """Retorna as opções disponíveis para os filtros."""
+    filtros = {
+        'anos': data_service.get_anos_disponiveis(),
+        'unidades': data_service.get_unidades_disponiveis(),
+        'squads': data_service.get_squads_disponiveis(),
+        'categorias': data_service.get_categorias_disponiveis(),
+        'meses': [
+            {'valor': 1, 'nome': 'Janeiro'},
+            {'valor': 2, 'nome': 'Fevereiro'},
+            {'valor': 3, 'nome': 'Março'},
+            {'valor': 4, 'nome': 'Abril'},
+            {'valor': 5, 'nome': 'Maio'},
+            {'valor': 6, 'nome': 'Junho'},
+            {'valor': 7, 'nome': 'Julho'},
+            {'valor': 8, 'nome': 'Agosto'},
+            {'valor': 9, 'nome': 'Setembro'},
+            {'valor': 10, 'nome': 'Outubro'},
+            {'valor': 11, 'nome': 'Novembro'},
+            {'valor': 12, 'nome': 'Dezembro'}
+        ]
+    }
+    
+    return jsonify(filtros)
+
+@app.route('/api/dashboard/semanas', methods=['GET'])
+@login_required
+def get_semanas_mes():
+    """Retorna as semanas disponíveis para um mês específico."""
+    ano = request.args.get('ano', type=int)
+    mes = request.args.get('mes', type=int)
+    
+    if not ano or not mes:
+        return jsonify({'error': 'Ano e mês são obrigatórios'}), 400
+    
+    # Busca semanas do mês
+    df = data_service.get_produtos_vendidos_df(ano=ano, mes=mes)
+    
+    if df.empty:
+        return jsonify({'semanas': []})
+    
+    # Extrai semanas únicas
+    semanas = df['semana_domingo'].dt.date.unique()
+    semanas_list = []
+    
+    for i, semana in enumerate(sorted(semanas)):
+        semanas_list.append({
+            'numero': i + 1,
+            'data': semana.isoformat(),
+            'label': f"Semana {i + 1} (até {semana.strftime('%d/%m')})"
+        })
+    
+    return jsonify({'semanas': semanas_list})
 
 # ========== Upload de Arquivos ==========
 @app.route('/api/upload/produtos-vendidos', methods=['POST'])

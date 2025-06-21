@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Page</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+<body>
+    <h1 style="color: var(--primary);">Test Page</h1>
+    <p>CSS Path: {{ url_for('static', filename='css/dashboard.css') }}</p>
+    <p>If you see yellow text above, CSS is loading correctly.</p>
+</body>
+</html>

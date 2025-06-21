@@ -1,812 +1,1166 @@
-{% extends "base.html" %}
-
-{% block title %}Dashboard - Auditoria FB{% endblock %}
-
-{% block extra_css %}
-<style>
-/* Métricas principais com destaque */
-.metric-primary {
-    background: linear-gradient(135deg, rgba(241, 194, 50, 0.1) 0%, rgba(241, 194, 50, 0.05) 100%);
-    border: 1px solid rgba(241, 194, 50, 0.3);
-}
-
-.metric-primary .metric-value {
-    color: var(--primary-color);
-    font-size: 2.5rem;
-}
-
-/* Cards secundários */
-.metric-secondary .metric-value {
-    font-size: 2rem;
-}
-
-/* Seção headers */
-.section-header {
-    margin-bottom: 1.5rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 2px solid var(--border-color);
-}
-
-.section-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--text-secondary);
-    margin: 0;
-}
-
-/* Grid system melhorado */
-.metrics-grid {
-    display: grid;
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-@media (min-width: 768px) {
-    .metrics-grid-primary {
-        grid-template-columns: repeat(2, 1fr);
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Auditoria FB</title>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Dashboard CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v=2.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard-fixes.css') }}?v=1.0">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header-clean">
+        <div class="header-content">
+            <div class="header-left">
+                <a href="{{ url_for('dashboard') }}" class="header-brand">
+                    <img src="{{ url_for('static', filename='images/logo/logofb_white.png') }}" alt="Logo" class="brand-logo">
+                </a>
+            </div>
+            
+            <div class="header-right">
+                <!-- Period Filters -->
+                <div class="header-filters">
+                    <select class="filter-select" id="yearFilter">
+                        <option value="">Carregando...</option>
+                    </select>
+                    
+                    <select class="filter-select" id="periodFilter">
+                        <option value="month">Mês</option>
+                        <option value="q1">1° Trimestre</option>
+                        <option value="q2">2° Trimestre</option>
+                        <option value="q3">3° Trimestre</option>
+                        <option value="q4">4° Trimestre</option>
+                        <option value="ytd">Year to Date</option>
+                        <option value="full_year">Ano Completo</option>
+                        <option value="custom">Período Personalizado</option>
+                    </select>
+                    
+                    <!-- Filtros condicionais para Mês -->
+                    <select class="filter-select hidden" id="monthFilter">
+                        <option value="">Selecione o mês</option>
+                    </select>
+                    
+                    <select class="filter-select hidden" id="weekFilter">
+                        <option value="">Selecione a semana</option>
+                    </select>
+                    
+                    <!-- Advanced Filters Button -->
+                    <button class="btn-advanced-filters" id="advancedFiltersBtn">
+                        <i class="fas fa-filter"></i>
+                        <span class="filter-count" id="filterCount" style="display: none;">0</span>
+                    </button>
+                </div>
+                
+                <!-- User Menu -->
+                <div class="user-menu">
+                    <button class="user-button" id="userMenuToggle">
+                        <span>{{ current_user.nome|title }}</span>
+                        <div class="user-avatar">
+                            {{ current_user.nome[0]|upper }}
+                        </div>
+                        <i class="fas fa-chevron-down" style="font-size: 0.75rem;"></i>
+                    </button>
+                    
+                    <div class="user-dropdown" id="userDropdown">
+                        <a href="#" class="dropdown-item">
+                            <i class="fas fa-user"></i>
+                            <span>Meu Perfil</span>
+                        </a>
+                        <a href="#" class="dropdown-item">
+                            <i class="fas fa-cog"></i>
+                            <span>Configurações</span>
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="{{ url_for('logout') }}" class="dropdown-item">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Sair</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <div class="clean-layout">
+        <!-- Sidebar with Rail -->
+        <aside class="sidebar-clean" id="sidebar">
+            <!-- Sidebar Rail -->
+            <div class="sidebar-rail">
+                <button class="sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">
+                    <i class="fas fa-chevron-left" id="toggleIcon"></i>
+                </button>
+            </div>
+            <div class="sidebar-content">
+                <!-- Main Navigation -->
+                <nav class="nav-section">
+                    <ul class="nav-menu">
+                        <li class="nav-item">
+                            <a href="{{ url_for('dashboard') }}" class="nav-link active">
+                                <i class="fas fa-th-large nav-icon"></i>
+                                <span class="nav-text">Dashboard</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ url_for('indicators') }}" class="nav-link">
+                                <i class="fas fa-chart-line nav-icon"></i>
+                                <span class="nav-text">Indicadores</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                
+                <!-- Admin Section -->
+                <nav class="nav-admin">
+                    <ul class="nav-menu">
+                        {% if current_user.perfil in ['admin', 'gestor'] %}
+                        <li class="nav-item">
+                            <a href="{{ url_for('import_data') }}" class="nav-link">
+                                <i class="fas fa-upload nav-icon"></i>
+                                <span class="nav-text">Importar Dados</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% if current_user.perfil == 'admin' %}
+                        <li class="nav-item">
+                            <a href="{{ url_for('settings') }}" class="nav-link">
+                                <i class="fas fa-cog nav-icon"></i>
+                                <span class="nav-text">Configurações</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                        <li class="nav-item">
+                            <a href="{{ url_for('logout') }}" class="nav-link">
+                                <i class="fas fa-sign-out-alt nav-icon"></i>
+                                <span class="nav-text">Sair</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-clean">
+            <div class="dashboard-content">
+                <!-- Page Header with Active Filters -->
+                <div class="page-header">
+                    <div class="header-wrapper">
+                        <div class="title-section">
+                            <h1 class="page-title">Dashboard Overview</h1>
+                            <p class="page-subtitle">Acompanhamento de métricas e indicadores de performance</p>
+                        </div>
+                        
+                        <!-- Active Filters Display -->
+                        <div class="active-filters-display" id="dashboardActiveFilters" style="display: none;">
+                            <div class="filters-label">
+                                <i class="fas fa-filter"></i>
+                                <span>Filtros ativos:</span>
+                            </div>
+                            <div class="filter-tags" id="dashboardFilterTags">
+                                <!-- Filter tags will be dynamically added here -->
+                            </div>
+                            <button class="clear-filters-btn" onclick="clearAllDashboardFilters()">
+                                <i class="fas fa-times"></i>
+                                Limpar tudo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Advanced Filters Modal -->
+                <div class="modal" id="advancedFiltersModal" style="display: none;">
+                    <div class="modal-overlay" onclick="closeAdvancedFilters()"></div>
+                    <div class="modal-container">
+                        <div class="modal-header">
+                            <h2 class="modal-title">Filtros Avançados</h2>
+                            <button class="modal-close" onclick="closeAdvancedFilters()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="modal-body">
+                            <!-- Active Filters Chips -->
+                            <div class="active-filters" id="activeFiltersContainer" style="display: none;">
+                                <div class="active-filters-header">
+                                    <span class="active-filters-label">Filtros ativos:</span>
+                                    <button class="btn-clear-all" onclick="clearAllFilters()">
+                                        <i class="fas fa-times"></i> Limpar tudo
+                                    </button>
+                                </div>
+                                <div class="filter-chips" id="filterChips"></div>
+                            </div>
+                            
+                            <!-- Filter Sections -->
+                            <div class="filter-sections">
+                                <!-- Squad Section -->
+                                <div class="filter-section">
+                                    <h3 class="section-title">
+                                        <i class="fas fa-users"></i> Squad
+                                    </h3>
+                                    <div class="filter-options" id="squadOptions">
+                                        <!-- Options will be populated dynamically -->
+                                    </div>
+                                </div>
+                                
+                                <!-- Unit Section -->
+                                <div class="filter-section">
+                                    <h3 class="section-title">
+                                        <i class="fas fa-building"></i> Unidade
+                                    </h3>
+                                    <div class="filter-options" id="unitOptions">
+                                        <!-- Options will be populated dynamically -->
+                                    </div>
+                                </div>
+                                
+                                <!-- Category Section -->
+                                <div class="filter-section">
+                                    <h3 class="section-title">
+                                        <i class="fas fa-tags"></i> Categoria de Produto
+                                    </h3>
+                                    <div class="filter-options" id="categoryOptions">
+                                        <!-- Options will be populated dynamically -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="modal-footer">
+                            <button class="btn-secondary" onclick="clearAllFilters()">
+                                <i class="fas fa-eraser"></i> Limpar Filtros
+                            </button>
+                            <button class="btn-primary" onclick="applyAdvancedFilters()">
+                                <i class="fas fa-check"></i> Aplicar Filtros
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Período Personalizado Modal -->
+                <div class="modal" id="customPeriodModal" style="display: none;">
+                    <div class="custom-period-container">
+                        <div class="custom-period-header">
+                            <div class="period-icon">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <h3 class="period-title">Período Personalizado</h3>
+                            <button class="period-close" onclick="closeCustomPeriod()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="custom-period-body">
+                            <p class="period-description">Selecione o intervalo de datas para análise</p>
+                            
+                            <div class="date-input-group">
+                                <div class="date-field">
+                                    <label class="date-label">
+                                        <i class="fas fa-calendar-day"></i>
+                                        Data Inicial
+                                    </label>
+                                    <input type="date" id="startDate" class="date-input">
+                                </div>
+                                
+                                <div class="date-separator">
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                                
+                                <div class="date-field">
+                                    <label class="date-label">
+                                        <i class="fas fa-calendar-check"></i>
+                                        Data Final
+                                    </label>
+                                    <input type="date" id="endDate" class="date-input">
+                                </div>
+                            </div>
+                            
+                            <div class="period-suggestions">
+                                <p class="suggestions-label">Sugestões rápidas:</p>
+                                <div class="suggestion-chips">
+                                    <button class="suggestion-chip" onclick="setPeriodSuggestion('last7days')">
+                                        Últimos 7 dias
+                                    </button>
+                                    <button class="suggestion-chip" onclick="setPeriodSuggestion('last30days')">
+                                        Últimos 30 dias
+                                    </button>
+                                    <button class="suggestion-chip" onclick="setPeriodSuggestion('last90days')">
+                                        Últimos 90 dias
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="custom-period-footer">
+                            <button class="btn-period-cancel" onclick="closeCustomPeriod()">
+                                <i class="fas fa-times"></i>
+                                Cancelar
+                            </button>
+                            <button class="btn-period-confirm" onclick="confirmCustomPeriod()">
+                                <i class="fas fa-check"></i>
+                                Aplicar Período
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Metrics Grid - 4 Cards Principais -->
+                <div class="metrics-grid">
+                    <!-- Produtos Vendidos -->
+                    <div class="metric-card">
+                        <div class="metric-content">
+                            <div class="metric-header">
+                                <div class="metric-info">
+                                    <p class="metric-title">Produtos Vendidos</p>
+                                    <h2 class="metric-value" id="produtosVendidos">R$ 0</h2>
+                                    <div class="metric-stats">
+                                        <div class="metric-stat">
+                                            <span class="stat-label">Faturamento Total</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="metric-badge">
+                                    <i class="fas fa-shopping-cart"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Cancelamentos -->
+                    <div class="metric-card">
+                        <div class="metric-content">
+                            <div class="metric-header">
+                                <div class="metric-info">
+                                    <p class="metric-title">Cancelamentos</p>
+                                    <h2 class="metric-value" id="cancelamentos">R$ 0</h2>
+                                    <div class="metric-stats">
+                                        <div class="metric-stat">
+                                            <span class="stat-label">Índice:</span>
+                                            <span class="stat-value" id="indiceCancelamento">0%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="metric-badge" style="background: #ff6b6b;">
+                                    <i class="fas fa-times-circle"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Estornos -->
+                    <div class="metric-card">
+                        <div class="metric-content">
+                            <div class="metric-header">
+                                <div class="metric-info">
+                                    <p class="metric-title">Estornos</p>
+                                    <h2 class="metric-value" id="estornos">R$ 0</h2>
+                                    <div class="metric-stats">
+                                        <div class="metric-stat">
+                                            <span class="stat-label">Índice:</span>
+                                            <span class="stat-value" id="indiceEstorno">0%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="metric-badge" style="background: #fd7e14;">
+                                    <i class="fas fa-undo"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Estornos + Cancelamentos -->
+                    <div class="metric-card">
+                        <div class="metric-content">
+                            <div class="metric-header">
+                                <div class="metric-info">
+                                    <p class="metric-title">Estornos + Cancelamentos</p>
+                                    <h2 class="metric-value" id="estornosCancelamentos">R$ 0</h2>
+                                    <div class="metric-stats">
+                                        <div class="metric-stat">
+                                            <span class="stat-label">Total Combinado</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="metric-badge" style="background: #6c757d;">
+                                    <i class="fas fa-exchange-alt"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Charts Section -->
+                <div class="chart-grid">
+                    <!-- Main Chart -->
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div>
+                                <h3 class="chart-title">Evolução do Faturamento</h3>
+                                <p class="chart-subtitle">Análise comparativa do período selecionado</p>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="mainChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Índices Chart -->
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 class="chart-title">Índices de Cancelamento e Estorno</h3>
+                        </div>
+                        <div class="chart-container" style="height: 250px;">
+                            <canvas id="indicesChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/formatters.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sidebar-toggle.js') }}"></script>
+    
+    <style>
+    .hidden {
+        display: none !important;
+    }
+    </style>
+    
+    <script>
+    // Variáveis globais
+    let currentFilters = {
+        ano: null,
+        mes: null,
+        semana: null,
+        unidade: null,
+        squad: null,
+        categoria: null,
+        data_inicio: null,
+        data_fim: null
+    };
+    
+    // Função para capitalizar texto
+    function capitalizeText(text) {
+        if (!text) return text;
+        return text.toLowerCase().split(' ').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
     }
     
-    .metrics-grid-secondary {
-        grid-template-columns: repeat(4, 1fr);
-    }
-}
-
-/* Metric change indicators */
-.metric-change {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-top: 0.75rem;
-    font-size: 0.875rem;
-}
-
-.change-value {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    font-weight: 600;
-    font-size: 0.9rem;
-}
-
-.change-value.positive {
-    color: #27ae60;
-}
-
-.change-value.negative {
-    color: #e74c3c;
-}
-
-.change-value i {
-    font-size: 0.75rem;
-}
-
-.change-period {
-    color: var(--text-secondary);
-    font-size: 0.8rem;
-    opacity: 0.8;
-}
-
-/* Charts container */
-.chart-container {
-    position: relative;
-    height: 350px;
-    padding: 1rem;
-}
-
-/* Table improvements */
-.table-dashboard {
-    font-size: 0.9rem;
-    background: transparent;
-}
-
-.table-dashboard td,
-.table-dashboard th {
-    background: transparent;
-    color: var(--text-primary);
-}
-
-.table-dashboard th {
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.8rem;
-    letter-spacing: 0.5px;
-}
-
-.rank-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    font-weight: 700;
-    font-size: 0.9rem;
-}
-
-.rank-1 { 
-    background: #F1C232; 
-    color: var(--dark-bg); 
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-.rank-2 { 
-    background: #C0C0C0; 
-    color: var(--dark-bg);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-.rank-3 { 
-    background: #CD7F32; 
-    color: #ffffff;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-</style>
-{% endblock %}
-
-{% block content %}
-<div class="container-fluid px-4 py-4">
-    <!-- Header Principal -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1 class="h2 mb-0">Dashboard Geral</h1>
-        </div>
-        <div class="d-flex gap-2 align-items-center">
-            <button class="btn btn-outline-secondary btn-sm" onclick="atualizarDados()">
-                <i class="fas fa-sync-alt me-1"></i>Atualizar
-            </button>
-            <select class="form-select form-select-sm" id="periodoSelect" style="width: 180px;">
-                <option value="7">Últimos 7 dias</option>
-                <option value="30" selected>Últimos 30 dias</option>
-                <option value="90">Últimos 90 dias</option>
-                <option value="365">Último ano</option>
-            </select>
-        </div>
-    </div>
-
-    <!-- Métricas Principais (Valores Absolutos) -->
-    <div class="section-header">
-        <h2 class="section-title">Métricas Principais</h2>
-    </div>
-    
-    <div class="metrics-grid metrics-grid-primary">
-        <div class="card metric-card metric-primary">
-            <div class="card-body text-center">
-                <div class="metric-label mb-2">FATURAMENTO TOTAL</div>
-                <div class="metric-value" id="totalVendas">
-                    <span class="loading"></span>
-                </div>
-                <div class="metric-change">
-                    <span class="change-value positive">
-                        <i class="fas fa-arrow-up"></i> +12.5%
-                    </span>
-                    <span class="change-period">vs mês anterior</span>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card metric-card metric-primary">
-            <div class="card-body text-center">
-                <div class="metric-label mb-2">CUSTO TOTAL</div>
-                <div class="metric-value" id="custoTotal">
-                    <span class="loading"></span>
-                </div>
-                <div class="metric-change">
-                    <span class="change-value negative">
-                        <i class="fas fa-arrow-down"></i> -3.2%
-                    </span>
-                    <span class="change-period">vs mês anterior</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Métricas Secundárias -->
-    <div class="metrics-grid metrics-grid-secondary mb-4">
-        <div class="card metric-card metric-secondary">
-            <div class="card-body">
-                <div class="d-flex align-items-center mb-2">
-                    <i class="fas fa-shopping-cart text-info me-2"></i>
-                    <div class="metric-label">VENDAS</div>
-                </div>
-                <div class="metric-value" id="totalProdutos">
-                    <span class="loading"></span>
-                </div>
-                <small class="text-muted">unidades vendidas</small>
-                <div class="metric-change mt-2">
-                    <span class="change-value negative">
-                        <i class="fas fa-arrow-down"></i> -3.1%
-                    </span>
-                    <span class="change-period">vs mês anterior</span>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card metric-card metric-secondary">
-            <div class="card-body">
-                <div class="d-flex align-items-center mb-2">
-                    <i class="fas fa-receipt text-warning me-2"></i>
-                    <div class="metric-label">TICKET MÉDIO</div>
-                </div>
-                <div class="metric-value" id="ticketMedio">
-                    <span class="loading"></span>
-                </div>
-                <small class="text-muted">por transação</small>
-                <div class="metric-change mt-2">
-                    <span class="change-value positive">
-                        <i class="fas fa-arrow-up"></i> +5.2%
-                    </span>
-                    <span class="change-period">vs mês anterior</span>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card metric-card metric-secondary">
-            <div class="card-body">
-                <div class="d-flex align-items-center mb-2">
-                    <i class="fas fa-percentage text-danger me-2"></i>
-                    <div class="metric-label">DESCONTOS</div>
-                </div>
-                <div class="metric-value" id="totalDescontos">
-                    <span class="loading"></span>
-                </div>
-                <small class="text-muted">aplicados</small>
-                <div class="metric-change mt-2">
-                    <span class="change-value negative">
-                        <i class="fas fa-arrow-up"></i> +8.7%
-                    </span>
-                    <span class="change-period">vs mês anterior</span>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card metric-card metric-secondary">
-            <div class="card-body">
-                <div class="d-flex align-items-center mb-2">
-                    <i class="fas fa-users text-success me-2"></i>
-                    <div class="metric-label">CLIENTES</div>
-                </div>
-                <div class="metric-value" id="totalClientes">
-                    <span class="loading"></span>
-                </div>
-                <small class="text-muted">atendidos</small>
-                <div class="metric-change mt-2">
-                    <span class="change-value positive">
-                        <i class="fas fa-arrow-up"></i> +2.3%
-                    </span>
-                    <span class="change-period">vs mês anterior</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Seção de Gráficos -->
-    <div class="section-header">
-        <h2 class="section-title">Análise Temporal e Distribuição</h2>
-    </div>
-
-    <div class="row g-4 mb-4">
-        <!-- Gráfico de Tendência -->
-        <div class="col-lg-8">
-            <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-chart-line me-2 text-primary"></i>
-                        Evolução de Faturamento
-                    </h5>
-                    <div class="btn-group btn-group-sm" role="group">
-                        <button type="button" class="btn btn-outline-secondary active">Diário</button>
-                        <button type="button" class="btn btn-outline-secondary">Semanal</button>
-                        <button type="button" class="btn btn-outline-secondary">Mensal</button>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="chart-container">
-                        <canvas id="chartVendas"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Gráfico de Pizza -->
-        <div class="col-lg-4">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-chart-pie me-2 text-primary"></i>
-                        Top 5 Categorias
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="chart-container">
-                        <canvas id="chartCategorias"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Gráfico de Barras Comparativo -->
-    <div class="row g-4 mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-chart-bar me-2 text-primary"></i>
-                        Faturamento por Unidade
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="chart-container" style="height: 250px;">
-                        <canvas id="chartUnidades"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Rankings e Tabelas -->
-    <div class="section-header">
-        <h2 class="section-title">Rankings e Detalhamento</h2>
-    </div>
-
-    <div class="row g-4">
-        <!-- Top 10 Produtos -->
-        <div class="col-lg-6">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-trophy me-2 text-warning"></i>
-                        Top 10 Produtos
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover table-dashboard">
-                            <thead>
-                                <tr>
-                                    <th style="width: 50px;">Rank</th>
-                                    <th>Produto</th>
-                                    <th>Vendas</th>
-                                    <th>Faturamento</th>
-                                </tr>
-                            </thead>
-                            <tbody id="topProdutosTable">
-                                <tr>
-                                    <td colspan="4" class="text-center">
-                                        <span class="loading"></span> Carregando...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Performance por Unidade -->
-        <div class="col-lg-6">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-store me-2 text-info"></i>
-                        Performance por Unidade
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover table-dashboard">
-                            <thead>
-                                <tr>
-                                    <th>Unidade</th>
-                                    <th>Faturamento</th>
-                                    <th>Crescimento</th>
-                                    <th>Meta</th>
-                                </tr>
-                            </thead>
-                            <tbody id="performanceUnidadesTable">
-                                <tr>
-                                    <td>BB Centro</td>
-                                    <td class="faturamento-unidade">R$ 458.320</td>
-                                    <td class="crescimento-unidade"><span class="text-success">+15.2%</span></td>
-                                    <td>
-                                        <div class="progress" style="height: 15px;">
-                                            <div class="progress-bar bg-success" style="width: 92%">
-                                                <span style="font-size: 0.75rem; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">92%</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>Blue Note</td>
-                                    <td class="faturamento-unidade">R$ 387.150</td>
-                                    <td class="crescimento-unidade"><span class="text-success">+8.7%</span></td>
-                                    <td>
-                                        <div class="progress" style="height: 15px;">
-                                            <div class="progress-bar bg-warning" style="width: 78%">
-                                                <span style="font-size: 0.75rem; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">78%</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>BB Granja</td>
-                                    <td class="faturamento-unidade">R$ 312.890</td>
-                                    <td class="crescimento-unidade"><span class="text-danger">-2.3%</span></td>
-                                    <td>
-                                        <div class="progress" style="height: 15px;">
-                                            <div class="progress-bar bg-danger" style="width: 65%">
-                                                <span style="font-size: 0.75rem; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">65%</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-// Variáveis globais para os gráficos
-let chartVendas = null;
-let chartCategorias = null;
-let chartUnidades = null;
-
-// As funções de formatação agora estão em formatters.js
-
-// Função para carregar dados do dashboard
-async function carregarDados() {
-    const periodo = document.getElementById('periodoSelect').value;
-    const dataFim = new Date();
-    const dataInicio = new Date();
-    dataInicio.setDate(dataInicio.getDate() - parseInt(periodo));
-    
-    try {
-        const response = await fetch(`/api/produtos-vendidos?periodo_inicio=${dataInicio.toISOString()}&periodo_fim=${dataFim.toISOString()}`);
-        const data = await response.json();
-        
-        // Atualizar métricas principais
-        document.getElementById('totalVendas').textContent = formatarValorAbreviado(data.resumo.total_vendas || 1584320);
-        document.getElementById('custoTotal').textContent = formatarValorAbreviado(data.resumo.total_vendas * 0.65 || 1029808);
-        
-        // Atualizar métricas secundárias
-        document.getElementById('totalProdutos').textContent = formatarNumeroAbreviado(data.resumo.total_produtos || 12847);
-        document.getElementById('ticketMedio').textContent = formatarValorAbreviado(data.resumo.ticket_medio || 123.25);
-        document.getElementById('totalDescontos').textContent = formatarValorAbreviado(data.resumo.total_descontos || 48950);
-        document.getElementById('totalClientes').textContent = formatarNumeroAbreviado(8432);
-        
-        // Atualizar gráficos
-        atualizarGraficoVendas(data.dados);
-        atualizarGraficoCategorias(data.resumo.categorias_mais_vendidas);
-        atualizarGraficoUnidades();
-        
-        // Atualizar tabelas
-        atualizarTabelaTopProdutos(data.dados);
-        
-    } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-        // Usar dados mockados se houver erro
-        carregarDadosMock();
-    }
-}
-
-// Função para carregar dados mockados
-function carregarDadosMock() {
-    // Métricas principais
-    document.getElementById('totalVendas').textContent = formatarValorAbreviado(1584320);
-    document.getElementById('custoTotal').textContent = formatarValorAbreviado(1029808);
-    
-    // Métricas secundárias
-    document.getElementById('totalProdutos').textContent = formatarNumeroAbreviado(12847);
-    document.getElementById('ticketMedio').textContent = formatarValorAbreviado(123.25);
-    document.getElementById('totalDescontos').textContent = formatarValorAbreviado(48950);
-    document.getElementById('totalClientes').textContent = formatarNumeroAbreviado(8432);
-    
-    // Atualizar gráficos com dados mock
-    atualizarGraficoVendas([]);
-    atualizarGraficoCategorias({
-        'Cervejas': 458000,
-        'Drinks': 385000,
-        'Petiscos': 287000,
-        'Vinhos': 198000,
-        'Destilados': 156000
+    // Sidebar Toggle
+    document.getElementById('sidebarToggle').addEventListener('click', function() {
+        document.getElementById('sidebar').classList.toggle('collapsed');
     });
-    atualizarGraficoUnidades();
-}
-
-// Função para atualizar gráfico de vendas
-function atualizarGraficoVendas(dados) {
-    const ctx = document.getElementById('chartVendas').getContext('2d');
     
-    // Dados para os últimos 30 dias
-    const labels = [];
-    const valores = [];
-    const custos = [];
+    // User Menu Toggle
+    document.getElementById('userMenuToggle').addEventListener('click', function(e) {
+        e.stopPropagation();
+        document.getElementById('userDropdown').classList.toggle('show');
+    });
     
-    // Gerar dados realistas com tendência crescente e variação semanal
-    const baseVendas = 45000;
-    const baseCustos = 28000;
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function() {
+        document.getElementById('userDropdown').classList.remove('show');
+    });
     
-    for (let i = 29; i >= 0; i--) {
-        const data = new Date();
-        data.setDate(data.getDate() - i);
-        const diaSemana = data.getDay();
+    // Period filter change handler
+    document.getElementById('periodFilter').addEventListener('change', function() {
+        const value = this.value;
+        const monthFilter = document.getElementById('monthFilter');
+        const weekFilter = document.getElementById('weekFilter');
         
-        // Fator de crescimento ao longo do mês
-        const fatorCrescimento = 1 + (29 - i) * 0.01;
-        
-        // Variação por dia da semana (sexta e sábado mais altos)
-        const fatorDiaSemana = diaSemana === 5 ? 1.4 : diaSemana === 6 ? 1.6 : diaSemana === 0 ? 1.2 : 1.0;
-        
-        // Adicionar ruído aleatório
-        const variacaoAleatoria = 0.9 + Math.random() * 0.2;
-        
-        const vendaDia = baseVendas * fatorCrescimento * fatorDiaSemana * variacaoAleatoria;
-        const custoDia = baseCustos * fatorCrescimento * fatorDiaSemana * variacaoAleatoria * 0.65;
-        
-        labels.push(data.toLocaleDateString('pt-BR', { day: '2d', month: '2d' }));
-        valores.push(vendaDia);
-        custos.push(custoDia);
-    }
-    
-    if (chartVendas) {
-        chartVendas.destroy();
-    }
-    
-    chartVendas = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Faturamento',
-                data: valores,
-                borderColor: '#F1C232',
-                backgroundColor: 'rgba(241, 194, 50, 0.1)',
-                borderWidth: 3,
-                tension: 0.3,
-                fill: true
-            }, {
-                label: 'Custos',
-                data: custos,
-                borderColor: '#e74c3c',
-                backgroundColor: 'rgba(231, 76, 60, 0.1)',
-                borderWidth: 2,
-                tension: 0.3,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-                mode: 'index',
-                intersect: false,
-            },
-            plugins: {
-                legend: {
-                    labels: {
-                        color: '#ffffff',
-                        padding: 20,
-                        font: {
-                            size: 12
-                        }
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return context.dataset.label + ': ' + formatarValorAbreviado(context.parsed.y);
-                        }
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        color: '#ffffff',
-                        callback: function(value) {
-                            return formatarValorAbreviado(value);
-                        }
-                    },
-                    grid: {
-                        color: 'rgba(255, 255, 255, 0.1)'
-                    }
-                },
-                x: {
-                    ticks: {
-                        color: '#ffffff',
-                        maxRotation: 45,
-                        minRotation: 45
-                    },
-                    grid: {
-                        color: 'rgba(255, 255, 255, 0.1)'
-                    }
-                }
+        if (value === 'month') {
+            monthFilter.classList.remove('hidden');
+            weekFilter.classList.remove('hidden');
+        } else {
+            monthFilter.classList.add('hidden');
+            weekFilter.classList.add('hidden');
+            
+            if (value === 'custom') {
+                document.getElementById('customPeriodModal').style.display = 'flex';
             }
         }
+        
+        updateFiltersBasedOnPeriod();
+        updateCurrentFilters();
+        loadDashboardData();
     });
-}
-
-// Função para atualizar gráfico de categorias
-function atualizarGraficoCategorias(categorias) {
-    const ctx = document.getElementById('chartCategorias').getContext('2d');
     
-    const labels = Object.keys(categorias).slice(0, 5);
-    const valores = Object.values(categorias).slice(0, 5);
+    // Month filter change handler
+    document.getElementById('monthFilter').addEventListener('change', function() {
+        if (this.value) {
+            loadWeeksForMonth();
+        }
+        updateCurrentFilters();
+        loadDashboardData();
+    });
     
-    if (chartCategorias) {
-        chartCategorias.destroy();
+    // Auto-apply period filters on change
+    document.getElementById('yearFilter').addEventListener('change', function() {
+        updateCurrentFilters();
+        loadDashboardData();
+    });
+    
+    // Advanced filters button
+    document.getElementById('advancedFiltersBtn').addEventListener('click', function() {
+        openAdvancedFilters();
+    });
+    
+    // Advanced filters state
+    let advancedFilters = {
+        squads: [],
+        units: [],
+        categories: []
+    };
+    
+    // Toggle Sidebar - movido para dentro do DOMContentLoaded
+    function initializeSidebarToggle() {
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const toggleIcon = document.getElementById('toggleIcon');
+        const mainContent = document.querySelector('.main-clean');
+    
+    // Load sidebar state from localStorage
+    const savedSidebarState = localStorage.getItem('sidebarCollapsed');
+    if (savedSidebarState === 'true') {
+        sidebar.classList.add('collapsed');
     }
     
-    chartCategorias = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: labels,
-            datasets: [{
-                data: valores,
-                backgroundColor: [
-                    '#F1C232',
-                    '#3498db',
-                    '#27ae60',
-                    '#e74c3c',
-                    '#9b59b6'
-                ],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        color: '#ffffff',
-                        padding: 15,
-                        font: {
-                            size: 11
-                        }
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-                            const percentage = ((context.parsed / total) * 100).toFixed(1);
-                            return context.label + ': ' + formatarValorAbreviado(context.parsed) + ' (' + percentage + '%)';
-                        }
-                    }
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Toggle clicked!');
+                
+                sidebar.classList.toggle('collapsed');
+                
+                // Save state to localStorage
+                localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+                
+                // Add tooltips when collapsed
+                if (sidebar.classList.contains('collapsed')) {
+                    addSidebarTooltips();
+                } else {
+                    removeSidebarTooltips();
                 }
-            }
+            });
+        } else {
+            console.error('Sidebar toggle button not found!');
         }
-    });
-}
-
-// Função para atualizar gráfico de unidades
-function atualizarGraficoUnidades() {
-    const ctx = document.getElementById('chartUnidades').getContext('2d');
     
-    if (chartUnidades) {
-        chartUnidades.destroy();
+    // Tooltip functions
+    function addSidebarTooltips() {
+        const navLinks = document.querySelectorAll('.nav-link');
+        navLinks.forEach(link => {
+            const text = link.querySelector('.nav-text').textContent;
+            link.setAttribute('title', text);
+        });
     }
     
-    chartUnidades = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['BB Centro', 'Blue Note', 'BB Granja', 'Arcos', 'Riviera', 'Girondino', 'Orfeu'],
-            datasets: [{
-                label: 'Faturamento Atual',
-                data: [458320, 387150, 312890, 278450, 198760, 165230, 142870],
-                backgroundColor: '#F1C232',
-                borderRadius: 8
-            }, {
-                label: 'Meta Mensal',
-                data: [500000, 450000, 400000, 350000, 300000, 250000, 200000],
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                borderRadius: 8
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    labels: {
-                        color: '#ffffff',
-                        padding: 15
-                    }
+    function removeSidebarTooltips() {
+        const navLinks = document.querySelectorAll('.nav-link');
+        navLinks.forEach(link => {
+            link.removeAttribute('title');
+        });
+    }
+    
+        // Initialize tooltips if sidebar is already collapsed
+        if (sidebar.classList.contains('collapsed')) {
+            addSidebarTooltips();
+        }
+    }
+    
+    // Custom period functions
+    function closeCustomPeriod() {
+        document.getElementById('customPeriodModal').style.display = 'none';
+        // Don't change the period filter value when closing
+    }
+    
+    function confirmCustomPeriod() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        
+        if (startDate && endDate) {
+            currentFilters.data_inicio = startDate;
+            currentFilters.data_fim = endDate;
+            document.getElementById('customPeriodModal').style.display = 'none';
+            updateCurrentFilters();
+            loadDashboardData();
+        }
+    }
+    
+    // Update filters based on period selection
+    function updateFiltersBasedOnPeriod() {
+        const year = parseInt(document.getElementById('yearFilter').value);
+        const period = document.getElementById('periodFilter').value;
+        const month = document.getElementById('monthFilter').value;
+        
+        // Reset all date-related filters
+        currentFilters.data_inicio = null;
+        currentFilters.data_fim = null;
+        currentFilters.mes = null;
+        currentFilters.semana = null;
+        
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth() + 1;
+        
+        switch(period) {
+            case 'q1':
+                currentFilters.data_inicio = `${year}-01-01`;
+                currentFilters.data_fim = `${year}-03-31`;
+                break;
+            case 'q2':
+                currentFilters.data_inicio = `${year}-04-01`;
+                currentFilters.data_fim = `${year}-06-30`;
+                break;
+            case 'q3':
+                currentFilters.data_inicio = `${year}-07-01`;
+                currentFilters.data_fim = `${year}-09-30`;
+                break;
+            case 'q4':
+                currentFilters.data_inicio = `${year}-10-01`;
+                currentFilters.data_fim = `${year}-12-31`;
+                break;
+            case 'ytd':
+                currentFilters.data_inicio = `${year}-01-01`;
+                if (year === currentYear) {
+                    currentFilters.data_fim = today.toISOString().split('T')[0];
+                } else {
+                    currentFilters.data_fim = `${year}-12-31`;
                 }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        color: '#ffffff',
-                        callback: function(value) {
-                            return formatarValorAbreviado(value);
-                        }
-                    },
-                    grid: {
-                        color: 'rgba(255, 255, 255, 0.1)'
-                    }
-                },
-                x: {
-                    ticks: {
-                        color: '#ffffff'
-                    },
-                    grid: {
-                        display: false
-                    }
+                break;
+            case 'full_year':
+                currentFilters.data_inicio = `${year}-01-01`;
+                currentFilters.data_fim = `${year}-12-31`;
+                break;
+            case 'month':
+                if (month) {
+                    currentFilters.mes = parseInt(month);
+                    currentFilters.ano = year;
+                    // Clear date range filters when using month
+                    currentFilters.data_inicio = null;
+                    currentFilters.data_fim = null;
                 }
+                break;
+            case 'custom':
+                // Custom period dates are set in confirmCustomPeriod function
+                break;
+        }
+    }
+    
+    // Update current filters from UI
+    function updateCurrentFilters() {
+        currentFilters.ano = parseInt(document.getElementById('yearFilter').value);
+        currentFilters.unidade = advancedFilters.units.length > 0 ? advancedFilters.units.join(',') : null;
+        currentFilters.squad = advancedFilters.squads.length > 0 ? advancedFilters.squads.join(',') : null;
+        currentFilters.categoria = advancedFilters.categories.length > 0 ? advancedFilters.categories.join(',') : null;
+        
+        const period = document.getElementById('periodFilter').value;
+        if (period === 'month') {
+            currentFilters.mes = parseInt(document.getElementById('monthFilter').value) || null;
+            
+            const weekData = document.getElementById('weekFilter').value;
+            if (weekData) {
+                currentFilters.semana = weekData;
+            } else {
+                currentFilters.semana = null;
             }
         }
+        
+        updateFiltersBasedOnPeriod();
+    }
+    
+    // Load filter options
+    async function loadFilterOptions() {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const response = await fetch('/api/dashboard/filters');
+                const data = await response.json();
+            
+            // Populate year filter
+            const yearFilter = document.getElementById('yearFilter');
+            yearFilter.innerHTML = '';
+            data.anos.forEach(ano => {
+                const option = document.createElement('option');
+                option.value = ano;
+                option.textContent = ano;
+                if (ano === new Date().getFullYear()) {
+                    option.selected = true;
+                }
+                yearFilter.appendChild(option);
+            });
+            
+            // Populate month filter
+            const monthFilter = document.getElementById('monthFilter');
+            monthFilter.innerHTML = '<option value="">Selecione o mês</option>';
+            data.meses.forEach(mes => {
+                const option = document.createElement('option');
+                option.value = mes.valor;
+                option.textContent = mes.nome;
+                if (mes.valor === new Date().getMonth() + 1) {
+                    option.selected = true;
+                }
+                monthFilter.appendChild(option);
+            });
+            
+            // Store filter options for modal
+            window.filterData = {
+                squads: data.squads,
+                units: data.unidades,
+                categories: data.categorias
+            };
+            
+            // Populate filter modal options
+            populateFilterModal();
+            
+            // Set initial period to Year to Date
+            document.getElementById('periodFilter').value = 'ytd';
+            
+            // Update filters based on YTD selection
+            updateFiltersBasedOnPeriod();
+            
+            // Adjust select widths after loading
+            setTimeout(() => {
+                document.querySelectorAll('.filter-select').forEach(select => {
+                    adjustSelectWidth(select);
+                });
+            }, 100);
+            
+            resolve();
+            } catch (error) {
+                console.error('Erro ao carregar filtros:', error);
+                reject(error);
+            }
+        });
+    }
+    
+    // Load weeks for selected month
+    async function loadWeeksForMonth() {
+        const ano = document.getElementById('yearFilter').value;
+        const mes = document.getElementById('monthFilter').value;
+        
+        if (!ano || !mes) return;
+        
+        try {
+            const response = await fetch(`/api/dashboard/semanas?ano=${ano}&mes=${mes}`);
+            const data = await response.json();
+            
+            const weekFilter = document.getElementById('weekFilter');
+            weekFilter.innerHTML = '<option value="">Todas as semanas</option>';
+            
+            data.semanas.forEach(semana => {
+                const option = document.createElement('option');
+                option.value = semana.data;
+                option.textContent = semana.label;
+                weekFilter.appendChild(option);
+            });
+            
+            // Add event listener to week filter
+            weekFilter.addEventListener('change', function() {
+                updateCurrentFilters();
+                loadDashboardData();
+            }, { once: true });
+            
+        } catch (error) {
+            console.error('Erro ao carregar semanas:', error);
+        }
+    }
+    
+    // Load dashboard data
+    async function loadDashboardData() {
+        try {
+            // Build query params
+            const params = new URLSearchParams();
+            Object.keys(currentFilters).forEach(key => {
+                if (currentFilters[key] !== null && currentFilters[key] !== '') {
+                    params.append(key, currentFilters[key]);
+                }
+            });
+            
+            const response = await fetch(`/api/dashboard/summary?${params}`);
+            const data = await response.json();
+            
+            // Update cards
+            document.getElementById('produtosVendidos').textContent = data.produtos_vendidos.formatado;
+            document.getElementById('cancelamentos').textContent = data.cancelamentos.formatado;
+            document.getElementById('estornos').textContent = data.estornos.formatado;
+            document.getElementById('estornosCancelamentos').textContent = data.estornos_cancelamentos.formatado;
+            
+            // Update indices
+            document.getElementById('indiceCancelamento').textContent = data.indice_cancelamento + '%';
+            document.getElementById('indiceEstorno').textContent = data.indice_estorno + '%';
+            
+            // Update charts
+            updateCharts(data);
+            
+        } catch (error) {
+            console.error('Erro ao carregar dados:', error);
+        }
+    }
+    
+    // Update charts
+    function updateCharts(data) {
+        // Main chart - to be implemented
+        // Indices chart - to be implemented
+    }
+    
+    // Advanced Filter Modal Functions
+    function openAdvancedFilters() {
+        const modal = document.getElementById('advancedFiltersModal');
+        modal.style.display = 'flex';
+        // Force reflow to ensure animation plays
+        modal.offsetHeight;
+        modal.classList.add('modal-open');
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function closeAdvancedFilters() {
+        const modal = document.getElementById('advancedFiltersModal');
+        modal.classList.remove('modal-open');
+        setTimeout(() => {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }, 300);
+    }
+    
+    function populateFilterModal() {
+        if (!window.filterData) return;
+        
+        // Populate squad options
+        const squadContainer = document.getElementById('squadOptions');
+        squadContainer.innerHTML = '';
+        window.filterData.squads.forEach(squad => {
+            const label = createFilterOption('squad', squad, capitalizeText(squad));
+            squadContainer.appendChild(label);
+        });
+        
+        // Populate unit options
+        const unitContainer = document.getElementById('unitOptions');
+        unitContainer.innerHTML = '';
+        window.filterData.units.forEach(unit => {
+            const label = createFilterOption('unit', unit, capitalizeText(unit));
+            unitContainer.appendChild(label);
+        });
+        
+        // Populate category options
+        const categoryContainer = document.getElementById('categoryOptions');
+        categoryContainer.innerHTML = '';
+        window.filterData.categories.forEach(category => {
+            const label = createFilterOption('category', category, capitalizeText(category));
+            categoryContainer.appendChild(label);
+        });
+    }
+    
+    function createFilterOption(type, value, displayText) {
+        const label = document.createElement('label');
+        label.className = 'filter-option';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = value;
+        checkbox.className = 'filter-checkbox';
+        checkbox.id = `${type}_${value}`;
+        
+        // Check if already selected
+        if ((type === 'squad' && advancedFilters.squads.includes(value)) ||
+            (type === 'unit' && advancedFilters.units.includes(value)) ||
+            (type === 'category' && advancedFilters.categories.includes(value))) {
+            checkbox.checked = true;
+        }
+        
+        checkbox.addEventListener('change', function() {
+            updateFilterSelection(type, value, this.checked);
+        });
+        
+        const span = document.createElement('span');
+        span.textContent = displayText;
+        
+        label.appendChild(checkbox);
+        label.appendChild(span);
+        
+        return label;
+    }
+    
+    function updateFilterSelection(type, value, isChecked) {
+        let arrayRef;
+        if (type === 'squad') arrayRef = advancedFilters.squads;
+        else if (type === 'unit') arrayRef = advancedFilters.units;
+        else if (type === 'category') arrayRef = advancedFilters.categories;
+        
+        if (isChecked) {
+            if (!arrayRef.includes(value)) {
+                arrayRef.push(value);
+            }
+        } else {
+            const index = arrayRef.indexOf(value);
+            if (index > -1) {
+                arrayRef.splice(index, 1);
+            }
+        }
+        
+        updateFilterChips();
+        updateFilterCount();
+    }
+    
+    function updateFilterChips() {
+        const container = document.getElementById('filterChips');
+        container.innerHTML = '';
+        
+        let hasFilters = false;
+        
+        // Add squad chips
+        advancedFilters.squads.forEach(squad => {
+            container.appendChild(createFilterChip('squad', squad, capitalizeText(squad)));
+            hasFilters = true;
+        });
+        
+        // Add unit chips
+        advancedFilters.units.forEach(unit => {
+            container.appendChild(createFilterChip('unit', unit, capitalizeText(unit)));
+            hasFilters = true;
+        });
+        
+        // Add category chips
+        advancedFilters.categories.forEach(category => {
+            container.appendChild(createFilterChip('category', category, capitalizeText(category)));
+            hasFilters = true;
+        });
+        
+        // Show/hide active filters section
+        document.getElementById('activeFiltersContainer').style.display = hasFilters ? 'block' : 'none';
+    }
+    
+    function createFilterChip(type, value, displayText) {
+        const chip = document.createElement('div');
+        chip.className = 'filter-chip';
+        
+        const text = document.createElement('span');
+        text.textContent = displayText;
+        
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'chip-remove';
+        removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+        removeBtn.onclick = function() {
+            removeFilter(type, value);
+        };
+        
+        chip.appendChild(text);
+        chip.appendChild(removeBtn);
+        
+        return chip;
+    }
+    
+    function removeFilter(type, value) {
+        updateFilterSelection(type, value, false);
+        const checkbox = document.getElementById(`${type}_${value}`);
+        if (checkbox) checkbox.checked = false;
+    }
+    
+    function clearAllFilters() {
+        advancedFilters.squads = [];
+        advancedFilters.units = [];
+        advancedFilters.categories = [];
+        
+        // Uncheck all checkboxes
+        document.querySelectorAll('.filter-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        
+        updateFilterChips();
+        updateFilterCount();
+        
+        // Update current filters and reload data
+        updateCurrentFilters();
+        loadDashboardData();
+    }
+    
+    function applyAdvancedFilters() {
+        updateCurrentFilters();
+        loadDashboardData();
+        updateDashboardFilterTags();
+        closeAdvancedFilters();
+    }
+    
+    // Dashboard Active Filters Display
+    function updateDashboardFilterTags() {
+        const container = document.getElementById('dashboardFilterTags');
+        const displayContainer = document.getElementById('dashboardActiveFilters');
+        container.innerHTML = '';
+        
+        let allTags = [];
+        let hasFilters = false;
+        
+        // Collect all tags
+        advancedFilters.squads.forEach(squad => {
+            allTags.push({ type: 'squad', label: 'Squad', value: squad, display: capitalizeText(squad) });
+            hasFilters = true;
+        });
+        
+        advancedFilters.units.forEach(unit => {
+            allTags.push({ type: 'unit', label: 'Unidade', value: unit, display: capitalizeText(unit) });
+            hasFilters = true;
+        });
+        
+        advancedFilters.categories.forEach(category => {
+            allTags.push({ type: 'category', label: 'Categoria', value: category, display: capitalizeText(category) });
+            hasFilters = true;
+        });
+        
+        // Calculate how many tags can be displayed
+        const maxVisibleTags = 5;
+        const visibleTags = allTags.slice(0, maxVisibleTags);
+        const hiddenCount = allTags.length - maxVisibleTags;
+        
+        // Add visible tags
+        visibleTags.forEach(tag => {
+            container.appendChild(createDashboardFilterTag(tag.label, tag.value, tag.display, tag.type));
+        });
+        
+        // Add "more" indicator if needed
+        if (hiddenCount > 0) {
+            const moreIndicator = document.createElement('div');
+            moreIndicator.className = 'more-filters-indicator';
+            moreIndicator.textContent = `+${hiddenCount}`;
+            moreIndicator.title = 'Clique para ver todos os filtros';
+            moreIndicator.onclick = function() {
+                openAdvancedFilters();
+            };
+            container.appendChild(moreIndicator);
+        }
+        
+        // Show/hide active filters section
+        displayContainer.style.display = hasFilters ? 'flex' : 'none';
+    }
+    
+    function createDashboardFilterTag(label, value, displayText, type) {
+        const tag = document.createElement('div');
+        tag.className = 'filter-tag';
+        
+        const tagLabel = document.createElement('span');
+        tagLabel.className = 'tag-label';
+        tagLabel.textContent = label + ':';
+        
+        const tagValue = document.createElement('span');
+        tagValue.className = 'tag-value';
+        tagValue.textContent = displayText;
+        
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'tag-remove';
+        removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+        removeBtn.onclick = function(e) {
+            e.stopPropagation();
+            removeFilter(type, value);
+            updateDashboardFilterTags();
+        };
+        
+        tag.appendChild(tagLabel);
+        tag.appendChild(tagValue);
+        tag.appendChild(removeBtn);
+        
+        return tag;
+    }
+    
+    function clearAllDashboardFilters() {
+        clearAllFilters();
+        updateDashboardFilterTags();
+    }
+    
+    function updateFilterCount() {
+        const totalFilters = advancedFilters.squads.length + 
+                           advancedFilters.units.length + 
+                           advancedFilters.categories.length;
+        
+        const countElement = document.getElementById('filterCount');
+        if (totalFilters > 0) {
+            countElement.textContent = totalFilters;
+            countElement.style.display = 'inline-flex';
+        } else {
+            countElement.style.display = 'none';
+        }
+    }
+    
+    // Period suggestion function
+    function setPeriodSuggestion(suggestion) {
+        const today = new Date();
+        let startDate, endDate;
+        
+        switch(suggestion) {
+            case 'last7days':
+                startDate = new Date(today);
+                startDate.setDate(today.getDate() - 7);
+                endDate = today;
+                break;
+            case 'last30days':
+                startDate = new Date(today);
+                startDate.setDate(today.getDate() - 30);
+                endDate = today;
+                break;
+            case 'last90days':
+                startDate = new Date(today);
+                startDate.setDate(today.getDate() - 90);
+                endDate = today;
+                break;
+        }
+        
+        document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+        document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+    }
+    
+    // Adjust select width based on content
+    function adjustSelectWidth(selectElement) {
+        // Create a temporary span to measure text width
+        const tempSpan = document.createElement('span');
+        tempSpan.style.position = 'absolute';
+        tempSpan.style.visibility = 'hidden';
+        tempSpan.style.fontSize = window.getComputedStyle(selectElement).fontSize;
+        tempSpan.style.fontFamily = window.getComputedStyle(selectElement).fontFamily;
+        tempSpan.style.padding = '0 2.5rem 0 1rem'; // Account for padding and arrow
+        
+        // Get selected option text
+        const selectedText = selectElement.options[selectElement.selectedIndex].text;
+        tempSpan.textContent = selectedText;
+        
+        document.body.appendChild(tempSpan);
+        const textWidth = tempSpan.offsetWidth;
+        document.body.removeChild(tempSpan);
+        
+        // Set the width with some extra space
+        selectElement.style.width = (textWidth + 20) + 'px';
+    }
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        loadFilterOptions().then(() => {
+            // Set initial filters after options are loaded
+            updateCurrentFilters();
+            
+            // Load initial data
+            loadDashboardData();
+            
+            // Initialize dashboard filter tags
+            updateDashboardFilterTags();
+            
+            // Initialize sidebar toggle
+            initializeSidebarToggle();
+            
+            // Adjust select widths
+            document.querySelectorAll('.filter-select').forEach(select => {
+                adjustSelectWidth(select);
+                select.addEventListener('change', function() {
+                    adjustSelectWidth(this);
+                });
+            });
+        });
     });
-}
-
-// Função para atualizar tabela de top produtos
-function atualizarTabelaTopProdutos(dados) {
-    const produtosMock = [
-        { nome: 'Heineken 600ml', vendas: 1847, faturamento: 36940 },
-        { nome: 'Gin Tônica', vendas: 1523, faturamento: 34270 },
-        { nome: 'Corona Extra', vendas: 1389, faturamento: 27780 },
-        { nome: 'Aperol Spritz', vendas: 1245, faturamento: 31125 },
-        { nome: 'Batata Frita', vendas: 1198, faturamento: 23960 },
-        { nome: 'Caipirinha', vendas: 1087, faturamento: 21740 },
-        { nome: 'Bruschetta', vendas: 976, faturamento: 24400 },
-        { nome: 'Stella Artois', vendas: 892, faturamento: 17840 },
-        { nome: 'Jack Daniels Dose', vendas: 845, faturamento: 21125 },
-        { nome: 'Água com Gás', vendas: 823, faturamento: 4938 }
-    ];
-    
-    const tbody = document.getElementById('topProdutosTable');
-    tbody.innerHTML = produtosMock.map((produto, index) => {
-        const rankClass = index < 3 ? `rank-${index + 1}` : 'bg-secondary';
-        return `
-            <tr>
-                <td><span class="rank-badge ${rankClass}">${index + 1}</span></td>
-                <td>${produto.nome}</td>
-                <td>${formatarNumeroAbreviado(produto.vendas)}</td>
-                <td>${formatarValorAbreviado(produto.faturamento)}</td>
-            </tr>
-        `;
-    }).join('');
-}
-
-// Função para atualizar dados
-function atualizarDados() {
-    // Mostrar loading em todos os elementos
-    document.querySelectorAll('.metric-value').forEach(el => {
-        el.innerHTML = '<span class="loading"></span>';
-    });
-    
-    carregarDados();
-}
-
-// Função para formatar dados estáticos da tabela
-function formatarTabelaPerformance() {
-    // Formatar valores de faturamento
-    document.querySelectorAll('.faturamento-unidade').forEach(td => {
-        const valor = parseFloat(td.textContent.replace('R$', '').replace('.', '').replace(',', '.'));
-        td.textContent = formatarValorAbreviado(valor);
-    });
-}
-
-// Carregar dados ao iniciar
-document.addEventListener('DOMContentLoaded', function() {
-    carregarDados();
-    formatarTabelaPerformance();
-    
-    // Atualizar ao mudar período
-    document.getElementById('periodoSelect').addEventListener('change', atualizarDados);
-    
-    // Auto-refresh a cada 5 minutos
-    setInterval(atualizarDados, 300000);
-});
-</script>
-{% endblock %}
+    </script>
+</body>
+</html>

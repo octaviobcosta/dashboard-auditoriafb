@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+
+{% block title %}Indicadores - Dashboard Auditoria FB{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <!-- Header com Título e Filtros -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h2 mb-0">Indicadores de Performance</h1>
+                <div class="d-flex gap-2">
+                    <select class="form-select form-select-sm" style="width: 200px;">
+                        <option value="">Todas as Unidades</option>
+                        <option value="bb-centro">BB Centro</option>
+                        <option value="blue-note">Blue Note</option>
+                        <option value="bb-granja">BB Granja</option>
+                    </select>
+                    <select class="form-select form-select-sm" style="width: 150px;">
+                        <option value="month">Mensal</option>
+                        <option value="week">Semanal</option>
+                        <option value="day">Diário</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPIs Principais -->
+    <div class="row g-4 mb-4">
+        <div class="col-xl-3 col-lg-6">
+            <div class="card metric-card">
+                <div class="metric-icon">
+                    <i class="fas fa-percentage fa-2x text-warning mb-3"></i>
+                </div>
+                <div class="metric-value">18.5%</div>
+                <div class="metric-label">Margem de Lucro</div>
+                <div class="metric-trend mt-3">
+                    <span class="text-success"><i class="fas fa-arrow-up"></i> 2.3%</span>
+                    <small class="text-muted">vs mês anterior</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-lg-6">
+            <div class="card metric-card">
+                <div class="metric-icon">
+                    <i class="fas fa-times-circle fa-2x text-danger mb-3"></i>
+                </div>
+                <div class="metric-value">1.85%</div>
+                <div class="metric-label">Taxa de Cancelamento</div>
+                <div class="metric-trend mt-3">
+                    <span class="text-danger"><i class="fas fa-arrow-up"></i> 0.12%</span>
+                    <small class="text-muted">vs mês anterior</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-lg-6">
+            <div class="card metric-card">
+                <div class="metric-icon">
+                    <i class="fas fa-undo fa-2x text-info mb-3"></i>
+                </div>
+                <div class="metric-value">0.44%</div>
+                <div class="metric-label">Taxa de Estorno</div>
+                <div class="metric-trend mt-3">
+                    <span class="text-success"><i class="fas fa-arrow-down"></i> 0.05%</span>
+                    <small class="text-muted">vs mês anterior</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-lg-6">
+            <div class="card metric-card">
+                <div class="metric-icon">
+                    <i class="fas fa-chart-line fa-2x text-success mb-3"></i>
+                </div>
+                <div class="metric-value">12.8%</div>
+                <div class="metric-label">Crescimento MoM</div>
+                <div class="metric-trend mt-3">
+                    <span class="text-success"><i class="fas fa-arrow-up"></i> 3.2%</span>
+                    <small class="text-muted">aceleração</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos de Análise -->
+    <div class="row g-4 mb-4">
+        <!-- Gráfico de Cancelamentos por Motivo -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Cancelamentos por Motivo</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="cancelationReasonsChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico de Tendência de Indicadores -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Tendência de Indicadores</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="indicatorsTrendChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ranking por Unidade -->
+    <div class="row g-4">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Performance por Unidade</h5>
+                    <select class="form-select form-select-sm" style="width: 200px;">
+                        <option value="profit">Margem de Lucro</option>
+                        <option value="cancel">Taxa de Cancelamento</option>
+                        <option value="refund">Taxa de Estorno</option>
+                        <option value="growth">Crescimento</option>
+                    </select>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Ranking</th>
+                                    <th>Unidade</th>
+                                    <th>Margem de Lucro</th>
+                                    <th>Taxa Cancelamento</th>
+                                    <th>Taxa Estorno</th>
+                                    <th>Crescimento MoM</th>
+                                    <th>Score Geral</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="badge bg-success">1°</span></td>
+                                    <td>BB Centro</td>
+                                    <td><span class="text-success">22.5%</span></td>
+                                    <td><span class="text-success">1.2%</span></td>
+                                    <td><span class="text-success">0.3%</span></td>
+                                    <td><span class="text-success">+15.2%</span></td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: 92%">
+                                                <span style="text-shadow: 0 1px 2px rgba(0,0,0,0.5);">92</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-warning">2°</span></td>
+                                    <td>Blue Note</td>
+                                    <td><span class="text-warning">18.3%</span></td>
+                                    <td><span class="text-warning">1.8%</span></td>
+                                    <td><span class="text-success">0.4%</span></td>
+                                    <td><span class="text-success">+12.1%</span></td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar bg-warning" role="progressbar" style="width: 78%">
+                                                <span style="text-shadow: 0 1px 2px rgba(0,0,0,0.5);">78</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-info">3°</span></td>
+                                    <td>BB Granja</td>
+                                    <td><span class="text-warning">16.8%</span></td>
+                                    <td><span class="text-danger">2.1%</span></td>
+                                    <td><span class="text-warning">0.5%</span></td>
+                                    <td><span class="text-warning">+8.5%</span></td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar bg-info" role="progressbar" style="width: 65%">
+                                                <span style="text-shadow: 0 1px 2px rgba(0,0,0,0.5);">65</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.metric-card {
+    position: relative;
+    text-align: center;
+    padding: 2rem;
+    transition: all 0.3s ease;
+}
+
+.metric-icon {
+    opacity: 0.8;
+}
+
+.metric-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0.5rem 0;
+}
+
+.metric-trend {
+    font-size: 0.9rem;
+}
+
+.progress {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.progress-bar {
+    font-weight: 600;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Gráfico de Pizza - Cancelamentos por Motivo
+const ctxPie = document.getElementById('cancelationReasonsChart').getContext('2d');
+const cancelationReasonsChart = new Chart(ctxPie, {
+    type: 'doughnut',
+    data: {
+        labels: ['Remoção de Couvert', 'Troca de Produto', 'Erro de Lançamento', 'Desistência', 'Produto Indisponível', 'Outros'],
+        datasets: [{
+            data: [30.1, 25.4, 18.2, 12.5, 8.3, 5.5],
+            backgroundColor: [
+                '#F1C232',
+                '#3498db',
+                '#e74c3c',
+                '#9b59b6',
+                '#f39c12',
+                '#95a5a6'
+            ],
+            borderWidth: 0
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'right',
+                labels: {
+                    color: '#ffffff',
+                    padding: 15,
+                    font: {
+                        size: 12
+                    }
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.label + ': ' + context.parsed + '%';
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Gráfico de Linha - Tendência de Indicadores
+const ctxLine = document.getElementById('indicatorsTrendChart').getContext('2d');
+const indicatorsTrendChart = new Chart(ctxLine, {
+    type: 'line',
+    data: {
+        labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'],
+        datasets: [{
+            label: 'Margem de Lucro',
+            data: [15.2, 16.8, 17.3, 16.9, 18.1, 18.5],
+            borderColor: '#F1C232',
+            backgroundColor: 'rgba(241, 194, 50, 0.1)',
+            tension: 0.3,
+            borderWidth: 3
+        }, {
+            label: 'Taxa de Cancelamento',
+            data: [2.1, 1.95, 1.87, 1.92, 1.88, 1.85],
+            borderColor: '#e74c3c',
+            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+            tension: 0.3,
+            borderWidth: 3
+        }, {
+            label: 'Taxa de Estorno',
+            data: [0.52, 0.48, 0.45, 0.47, 0.43, 0.44],
+            borderColor: '#3498db',
+            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+            tension: 0.3,
+            borderWidth: 3
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                labels: {
+                    color: '#ffffff',
+                    padding: 15
+                }
+            }
+        },
+        scales: {
+            y: {
+                ticks: {
+                    color: '#ffffff',
+                    callback: function(value) {
+                        return value + '%';
+                    }
+                },
+                grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                }
+            },
+            x: {
+                ticks: {
+                    color: '#ffffff'
+                },
+                grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

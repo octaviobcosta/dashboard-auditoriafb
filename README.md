@@ -1,121 +1,221 @@
-# Dashboard Auditoria FB
+# Dashboard Auditoria FB 📊
 
-Sistema de dashboard para indicadores de controladoria, desenvolvido para análise e acompanhamento de métricas empresariais.
+Sistema de dashboard para análise e visualização de dados de auditoria, desenvolvido para fornecer insights em tempo real sobre operações, vendas e indicadores de desempenho.
 
-## Funcionalidades
+## 📋 Índice
 
-- 📊 Dashboard interativo com indicadores principais
-- 📈 Visualização de dados de vendas e produtos
-- 📤 Importação de arquivos CSV
-- 👥 Sistema de usuários com diferentes perfis
-- 🔐 Autenticação segura
-- 📱 Interface responsiva
+- [Visão Geral](#visão-geral)
+- [Funcionalidades](#funcionalidades)
+- [Tecnologias](#tecnologias)
+- [Instalação](#instalação)
+- [Configuração](#configuração)
+- [Uso](#uso)
+- [Estrutura do Projeto](#estrutura-do-projeto)
+- [Documentação](#documentação)
+- [Contribuindo](#contribuindo)
 
-## Tecnologias Utilizadas
+## 🎯 Visão Geral
 
-- **Backend**: Python 3.12, Flask
-- **Banco de Dados**: Supabase (PostgreSQL)
-- **Frontend**: Bootstrap 5, Chart.js
-- **Autenticação**: Flask-Login, JWT
+O Dashboard Auditoria FB é uma aplicação web moderna que permite:
+- Visualização de dados em tempo real
+- Análise de indicadores de performance
+- Importação e processamento de dados de múltiplas fontes
+- Geração de relatórios customizados
+- Gestão de usuários e permissões
 
-## Estrutura do Projeto
+### Screenshots
 
-```
-dashboard-auditoriafb/
-├── app.py              # Aplicação principal Flask
-├── config/             # Configurações
-│   └── settings.py
-├── models/             # Modelos de dados
-│   └── database.py
-├── routes/             # Rotas da API (futuro)
-├── static/             # Arquivos estáticos
-│   ├── css/
-│   ├── js/
-│   └── images/
-├── templates/          # Templates HTML
-│   ├── base.html
-│   ├── login.html
-│   └── dashboard.html
-├── data/               # Dados e uploads
-├── requirements.txt    # Dependências Python
-└── .env               # Variáveis de ambiente
-```
+![Dashboard Principal](docs/images/dashboard-preview.png)
+*Interface principal do dashboard com tema Clean/Grafite*
 
-## Instalação
+## ✨ Funcionalidades
 
-1. Clone o repositório:
+### Para Usuários
+- 📊 **Visualização de Dados**: Gráficos interativos e KPIs em tempo real
+- 📈 **Indicadores**: Acompanhamento de métricas de vendas, estornos e cancelamentos
+- 📱 **Responsivo**: Interface adaptável para desktop e mobile
+- 🎨 **Tema Moderno**: Design clean com tema grafite e amarelo
+
+### Para Administradores
+- 📤 **Importação de Dados**: Suporte para Excel, CSV e JSON
+- 👥 **Gestão de Usuários**: Controle de acesso e permissões
+- 🔧 **Configurações**: Personalização de parâmetros do sistema
+- 📝 **Logs de Auditoria**: Rastreamento de todas as ações
+
+## 🛠 Tecnologias
+
+### Backend
+- **Python 3.12**: Linguagem principal
+- **Flask 3.0**: Framework web
+- **Supabase**: Banco de dados PostgreSQL
+- **Pandas**: Processamento de dados
+
+### Frontend
+- **HTML5/CSS3**: Estrutura e estilo
+- **JavaScript**: Interatividade
+- **Chart.js**: Visualização de dados
+- **Bootstrap 5**: Framework CSS
+
+### Ferramentas
+- **MCP (Model Context Protocol)**: Integração com IA
+- **Git**: Controle de versão
+- **Docker**: Containerização (opcional)
+
+## 🚀 Instalação
+
+### Pré-requisitos
+- Python 3.12 ou superior
+- Git
+- Conta no Supabase
+- Node.js (opcional, para desenvolvimento frontend)
+
+### Passo a Passo
+
+1. **Clone o repositório**
 ```bash
-git clone https://github.com/octaviobcosta/dashboard-auditoriafb.git
+git clone https://github.com/seu-usuario/dashboard-auditoriafb.git
 cd dashboard-auditoriafb
 ```
 
-2. Crie um ambiente virtual:
+2. **Crie um ambiente virtual**
 ```bash
-python3 -m venv venv
-source venv/bin/activate  # Linux/Mac
-# ou
-venv\Scripts\activate  # Windows
+python -m venv venv
+
+# Windows
+venv\Scripts\activate
+
+# Linux/Mac
+source venv/bin/activate
 ```
 
-3. Instale as dependências:
+3. **Instale as dependências**
 ```bash
 pip install -r requirements.txt
 ```
 
-4. Configure as variáveis de ambiente:
-- Copie o arquivo `.env.example` para `.env`
-- Atualize as credenciais do Supabase e outras configurações
-
-5. Execute a aplicação:
+4. **Configure as variáveis de ambiente**
 ```bash
-python app.py
+cp .env.example .env
+# Edite o arquivo .env com suas configurações
+```
+
+5. **Execute a aplicação**
+```bash
+python run.py
 ```
 
 A aplicação estará disponível em `http://localhost:5000`
 
-## Uso
+## ⚙️ Configuração
+
+### Variáveis de Ambiente (.env)
+
+```env
+# Flask
+FLASK_APP=src/app.py
+FLASK_ENV=development
+SECRET_KEY=sua-chave-secreta-aqui
+
+# Supabase
+SUPABASE_URL=https://seu-projeto.supabase.co
+SUPABASE_KEY=sua-chave-anon-aqui
+
+# Configurações da aplicação
+UPLOAD_FOLDER=uploads
+MAX_CONTENT_LENGTH=16777216  # 16MB
+DEBUG=True
+```
+
+### Configuração do Banco de Dados
+
+1. Crie um projeto no Supabase
+2. Execute os scripts SQL em `database/schema.sql`
+3. Configure as URLs e chaves no arquivo `.env`
+
+## 📖 Uso
 
 ### Login
-- Acesse a aplicação e faça login com as credenciais padrão:
-  - Email: `admin@auditoriafb.com.br`
-  - Senha: (definida no .env)
+- Acesse `http://localhost:5000`
+- Use as credenciais fornecidas pelo administrador
+- Email padrão: `octavio@eshows.com.br`
+
+### Navegação Principal
+- **Dashboard**: Visão geral dos indicadores
+- **Indicadores**: Análise detalhada de métricas
+- **Importar Dados**: Upload de arquivos (admin)
+- **Configurações**: Ajustes do sistema (admin)
 
 ### Importação de Dados
-- Acesse o menu "Importar Dados" (disponível para admin/gestor)
-- Faça upload de arquivos CSV no formato esperado
-- O sistema processará e armazenará os dados automaticamente
+1. Acesse "Importar Dados" no menu
+2. Selecione o tipo de arquivo (Excel/CSV)
+3. Faça upload do arquivo
+4. Confirme o mapeamento de colunas
+5. Aguarde o processamento
 
-### Dashboard
-- Visualize métricas principais
-- Filtre por período
-- Analise gráficos de vendas e categorias
-- Veja os produtos mais vendidos
+## 📁 Estrutura do Projeto
 
-## Estrutura do Banco de Dados
+```
+dashboard-auditoriafb/
+├── src/                    # Código fonte principal
+│   ├── app.py             # Aplicação Flask
+│   ├── config/            # Configurações
+│   ├── models/            # Modelos de dados
+│   ├── data/              # Módulo de tratamento de dados
+│   │   ├── mappers/       # Mapeamento de colunas
+│   │   ├── validators/    # Validação de dados
+│   │   ├── converters/    # Conversão de tipos
+│   │   ├── processors/    # Processamento
+│   │   └── utils/         # Utilitários
+│   └── utils/             # Funções auxiliares
+├── templates/             # Templates HTML
+├── static/                # Arquivos estáticos
+│   ├── css/              # Estilos
+│   ├── js/               # Scripts
+│   └── images/           # Imagens
+├── database/              # Scripts SQL
+├── docs/                  # Documentação
+├── tests/                 # Testes
+├── requirements.txt       # Dependências Python
+├── run.py                # Script de execução
+└── README.md             # Este arquivo
+```
 
-### Tabelas Principais:
-- `usuarios`: Gerenciamento de usuários
-- `categorias`: Categorias de indicadores
-- `indicadores`: Definição de indicadores
-- `dados_indicadores`: Valores históricos
-- `produtos_vendidos`: Dados de vendas importados
-- `configuracoes`: Parâmetros do sistema
+## 📚 Documentação
 
-## Segurança
+### Para Desenvolvedores
+- [Arquitetura do Sistema](docs/ARCHITECTURE.md)
+- [Módulo de Dados](docs/DATA_MODULE.md)
+- [API Reference](docs/API.md)
+- [Guia de Contribuição](docs/CONTRIBUTING.md)
 
-- Senhas armazenadas com hash bcrypt
-- Autenticação por sessão e JWT
-- Validação de permissões por perfil
-- Logs de auditoria
+### Para Usuários
+- [Manual do Usuário](docs/USER_GUIDE.md)
+- [FAQ](docs/FAQ.md)
 
-## Contribuindo
+## 🤝 Contribuindo
 
-1. Faça um fork do projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/nova-feature`)
-3. Commit suas mudanças (`git commit -m 'Adiciona nova feature'`)
-4. Push para a branch (`git push origin feature/nova-feature`)
+Contribuições são bem-vindas! Por favor, leia nosso [Guia de Contribuição](docs/CONTRIBUTING.md) para detalhes sobre nosso código de conduta e processo de submissão de pull requests.
+
+### Como Contribuir
+1. Fork o projeto
+2. Crie sua feature branch (`git checkout -b feature/MinhaFeature`)
+3. Commit suas mudanças (`git commit -m 'Add: Nova funcionalidade'`)
+4. Push para a branch (`git push origin feature/MinhaFeature`)
 5. Abra um Pull Request
 
-## Licença
+## 📝 Licença
 
-Este projeto é propriedade da Auditoria FB.
+Este projeto está sob a licença proprietária. Todos os direitos reservados.
+
+## 👥 Equipe
+
+- **Octavio Costa** - Desenvolvedor Principal - [@octavio](https://github.com/octavio)
+
+## 📞 Suporte
+
+- Email: octavio@eshows.com.br
+- Issues: [GitHub Issues](https://github.com/seu-usuario/dashboard-auditoriafb/issues)
+
+---
+
+Desenvolvido com ❤️ por Octavio Costa
